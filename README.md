@@ -6,7 +6,7 @@ A centralized web-based system for storing, managing, and sharing wildlife data 
 
 <!-- Add your system preview screenshot below -->
 <p align="center">
-  <img src="./images/preview.png" alt="Wildlife Information System Preview" width="800">
+  <img src="./images/preview.jpeg" alt="Wildlife Information System Preview" width="800">
 </p>
 
 ---
@@ -136,12 +136,12 @@ Testing follows a **Black Box Testing** approach using **Postman** for API testi
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 📬 Contact
+##  Contact
 
 For questions or contributions, feel free to open an issue or reach out to the project maintainers.
