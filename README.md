@@ -6,7 +6,7 @@ A centralized web-based system for storing, managing, and sharing wildlife data 
 
 <!-- Add your system preview screenshot below -->
 <p align="center">
-  <img src="./images/preview.jpeg" alt="Wildlife Information System Preview" width="800">
+  <img src=".resources/images/preview.jpeg" alt="Wildlife Information System Preview" width="800">
 </p>
 
 ---
