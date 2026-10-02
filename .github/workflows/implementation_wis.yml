@@ -9,6 +9,11 @@ on:
       - implementation
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: implementation/backend
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
