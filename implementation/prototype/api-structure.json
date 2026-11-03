@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Wildlife Haven Frontend API Contract",
+  "version": "1.0.0",
+  "description": "Backend-facing contract inferred from the supplied frontend prototype. Implement these routes/shapes to replace simulated in-browser data.",
+  "basePath": "/api",
+  "authentication": {
+    "type": "Bearer",
+    "header": "Authorization",
+    "format": "Bearer <access-token>"
+  },
+  "entities": {
+    "animal": {
+      "id": "string",
+      "species": "string",
+      "name": "string",
+      "breed": "string",
+      "gender": "Female|Male|Unknown",
+      "age": "number",
+      "weight": "number",
+      "zoneId": "string",
+      "lat": "number",
+      "lng": "number",
+      "behavior": "string",
+      "health": "HEALTHY|WARNING|CRITICAL",
+      "temp": "number",
+      "hr": "number",
+      "speed": "number",
+      "targetLat": "number",
+      "targetLng": "number",
+      "createdAt": "ISO-8601 datetime",
+      "updatedAt": "ISO-8601 datetime"
+    },
+    "incident": {
+      "id": "string",
+      "type": "string",
+      "animal": "string|null",
+      "zone": "string",
+      "time": "string",
+      "status": "Open|Resolved",
+      "description": "string"
+    },
+    "zone": {
+      "id": "string",
+      "name": "string",
+      "color": "string",
+      "center": {
+        "lat": "number",
+        "lng": "number"
+      },
+      "bounds": "array of [lat,lng]"
+    },
+    "device": {
+      "id": "string",
+      "animal": "string|null",
+      "type": "string",
+      "battery": "number",
+      "signal": "string",
+      "status": "string",
+      "lastSeen": "string"
+    },
+    "task": {
+      "id": "string|number",
+      "title": "string",
+      "zone": "string",
+      "priority": "low|medium|high",
+      "meta": "string",
+      "done": "boolean"
+    },
+    "user": {
+      "id": "string|number",
+      "name": "string",
+      "email": "string",
+      "role": "Administrator|Field Officer|Researcher|Veterinarian",
+      "status": "Active|Inactive",
+      "lastLogin": "string"
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/animals",
+      "purpose": "List animals for dashboard/table/dataset explorer",
+      "query": {
+        "species": "optional string",
+        "health": "optional HEALTHY|WARNING|CRITICAL",
+        "zoneId": "optional string",
+        "search": "optional string",
+        "limit": "optional number",
+        "cursor": "optional string"
+      },
+      "response": {
+        "items": "animal[]",
+        "total": "number",
+        "nextCursor": "string|null"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/animals/:id",
+      "purpose": "Get one animal detail for the live panel",
+      "response": "animal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/animals/:id/history",
+      "purpose": "Get historical GPS/observation data for route history",
+      "query": {
+        "from": "optional ISO-8601",
+        "to": "optional ISO-8601",
+        "limit": "optional number"
+      },
+      "response": {
+        "animalId": "string",
+        "points": [
+          {
+            "lat": "number",
+            "lng": "number",
+            "time": "ISO-8601",
+            "speed": "number",
+            "activity": "string"
+          }
+        ],
+        "summary": {
+          "distanceKm": "number",
+          "durationMin": "number",
+          "avgSpeed": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/observations",
+      "purpose": "Sensor observations used for charts/live health metrics",
+      "query": {
+        "animalId": "optional string",
+        "from": "optional ISO-8601",
+        "to": "optional ISO-8601",
+        "metric": "optional temp|hr|movement"
+      },
+      "response": {
+        "items": [
+          {
+            "animalId": "string",
+            "timestamp": "ISO-8601",
+            "temperature": "number|null",
+            "heartRate": "number|null",
+            "movement": "number|null",
+            "behavior": "string|null"
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/alerts",
+      "purpose": "Open/resolved incidents and alerts",
+      "query": {
+        "status": "optional Open|Resolved"
+      },
+      "response": {
+        "items": "incident[]",
+        "total": "number"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/analytics",
+      "purpose": "Dashboard/report aggregates",
+      "response": {
+        "totalAnimals": "number",
+        "healthy": "number",
+        "warning": "number",
+        "critical": "number",
+        "avgTemp": "number",
+        "avgHR": "number",
+        "speciesCounts": "object",
+        "zoneCounts": "object",
+        "activitySeries": "array"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/animals",
+      "purpose": "Create an animal from Add Animal form",
+      "body": {
+        "species": "string",
+        "name": "string",
+        "breed": "string",
+        "gender": "string",
+        "age": "number",
+        "weight": "number",
+        "zoneId": "string"
+      },
+      "response": "animal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/incidents",
+      "purpose": "Create incident from Report Incident form",
+      "body": {
+        "type": "string",
+        "animal": "string|null",
+        "zoneId": "string",
+        "description": "string"
+      },
+      "response": "incident"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks",
+      "purpose": "Create field task",
+      "body": {
+        "title": "string",
+        "zone": "string",
+        "priority": "low|medium|high",
+        "due": "string"
+      },
+      "response": "task"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/tasks/:id",
+      "purpose": "Mark task complete / update task",
+      "body": {
+        "done": "boolean"
+      },
+      "response": "task"
+    },
+    {
+      "method": "POST",
+      "path": "/api/devices",
+      "purpose": "Register device/sensor",
+      "body": {
+        "id": "string",
+        "animal": "string|null",
+        "type": "string"
+      },
+      "response": "device"
+    },
+    {
+      "method": "GET",
+      "path": "/api/devices",
+      "purpose": "List sensors and their health",
+      "response": {
+        "items": "device[]",
+        "total": "number"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/users",
+      "purpose": "Create user from Users & Roles form",
+      "body": {
+        "name": "string",
+        "email": "string",
+        "role": "string"
+      },
+      "response": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "purpose": "List users and roles",
+      "response": {
+        "items": "user[]",
+        "total": "number"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/zones",
+      "purpose": "List wildlife zones/habitats",
+      "response": {
+        "items": "zone[]"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/zones",
+      "purpose": "Create zone from drawn map boundary",
+      "body": {
+        "name": "string",
+        "color": "string",
+        "center": {
+          "lat": "number",
+          "lng": "number"
+        },
+        "bounds": "array<[number,number]>"
+      },
+      "response": "zone"
+    }
+  ],
+  "frontendExports": {
+    "csvTypes": [
+      "movement",
+      "health",
+      "activity",
+      "full",
+      "analytics"
+    ],
+    "jsonExport": "Complete wildlife dataset with animals, incidents and zones"
+  }
+}

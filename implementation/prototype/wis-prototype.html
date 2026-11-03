@@ -1,0 +1,2577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wildlife Haven · Monitoring & Conservation</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #0a0f14; color: #e0e7ee; font-size: 14px; }
+    .app { display: flex; flex-direction: column; height: 100vh; background: #0a0f14; }
+
+    /* ============ TOP BAR ============ */
+    .topbar { height: 64px; background: #0b1115; border-bottom: 1px solid #1a2830; display: flex; align-items: center; padding: 0 1.5rem; gap: 1.5rem; flex-shrink: 0; z-index: 100; position: relative; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; min-width: 220px; }
+    .brand-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #4ade80, #22c55e); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #0a0f14; font-size: 1.3rem; box-shadow: 0 4px 12px rgba(74,222,128,0.25); flex-shrink: 0; }
+    .brand-text h1 { font-size: 1.05rem; font-weight: 800; color: #f0f9ff; letter-spacing: -0.02em; line-height: 1.1; }
+    .brand-text p { font-size: 0.68rem; color: #6b8598; font-weight: 500; }
+
+    .search-bar { flex: 1; max-width: 520px; position: relative; min-width: 0; }
+    .search-bar input { width: 100%; background: #141f26; border: 1px solid #1f333d; border-radius: 12px; padding: 0.65rem 1rem 0.65rem 2.6rem; color: #e0e7ee; font-size: 0.85rem; font-family: inherit; outline: none; transition: all 0.2s; }
+    .search-bar input:focus { border-color: #4ade80; background: #17282f; box-shadow: 0 0 0 3px rgba(74,222,128,0.1); }
+    .search-bar input::placeholder { color: #5b7a8c; }
+    .search-bar i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #5b7a8c; font-size: 0.85rem; }
+
+    .topbar-right { display: flex; align-items: center; gap: 1.2rem; margin-left: auto; flex-shrink: 0; }
+    .system-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 10px #4ade80; animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .notif-btn { position: relative; width: 40px; height: 40px; border-radius: 12px; background: #141f26; border: 1px solid #1f333d; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; transition: all 0.2s; flex-shrink: 0; }
+    .notif-btn:hover { background: #1a2a30; color: #4ade80; border-color: #4ade80; }
+    .notif-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; border: 2px solid #0b1115; }
+
+    .notif-wrap { position: relative; }
+    .notif-dropdown { position: absolute; top: calc(100% + 10px); right: 0; width: 340px; background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 0.6rem; box-shadow: 0 20px 40px rgba(0,0,0,0.6); z-index: 1000; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+    .notif-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .notif-header { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-bottom: 1px solid #1a2830; margin-bottom: 0.4rem; }
+    .notif-header h4 { font-size: 0.85rem; color: #f0f9ff; font-weight: 700; }
+    .notif-header span { font-size: 0.7rem; color: #4ade80; cursor: pointer; font-weight: 600; }
+    .notif-item { display: flex; gap: 0.7rem; padding: 0.65rem 0.75rem; border-radius: 8px; cursor: pointer; }
+    .notif-item:hover { background: #141f26; }
+    .notif-item-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+    .notif-item-icon.red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .notif-item-icon.orange { background: rgba(249,115,22,0.15); color: #f97316; }
+    .notif-item-icon.green { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .notif-item-text { flex: 1; font-size: 0.78rem; color: #e0e7ee; line-height: 1.35; }
+    .notif-item-text strong { color: #f0f9ff; }
+    .notif-item-time { font-size: 0.66rem; color: #5b7a8c; margin-top: 2px; }
+
+    .user-profile-wrap { position: relative; }
+    .user-profile { display: flex; align-items: center; gap: 0.7rem; padding: 0.35rem 0.9rem 0.35rem 0.35rem; background: #141f26; border-radius: 30px; border: 1px solid #1f333d; cursor: pointer; transition: all 0.2s; user-select: none; }
+    .user-profile:hover { border-color: #2a3a42; background: #1a2a30; }
+    .user-profile.open { border-color: #4ade80; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
+    .user-avatar.admin { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+    .user-avatar.researcher { background: linear-gradient(135deg, #06b6d4, #0ea5e9); }
+    .user-avatar.fieldofficer { background: linear-gradient(135deg, #f97316, #ef4444); }
+    .user-info h4 { font-size: 0.78rem; color: #f0f9ff; font-weight: 600; line-height: 1.1; }
+    .user-info p { font-size: 0.65rem; color: #6b8598; }
+    .user-profile > i.chevron { color: #5b7a8c; font-size: 0.7rem; transition: transform 0.2s; }
+    .user-profile.open > i.chevron { transform: rotate(180deg); }
+
+    .profile-dropdown { position: absolute; top: calc(100% + 10px); right: 0; width: 300px; background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 0.6rem; box-shadow: 0 20px 40px rgba(0,0,0,0.6); z-index: 1000; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+    .profile-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .dropdown-section-title { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: #5b7a8c; font-weight: 700; padding: 0.6rem 0.75rem 0.4rem; }
+    .dropdown-user-header { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem; background: #141f26; border-radius: 10px; margin-bottom: 0.5rem; }
+    .dropdown-user-header .user-avatar { width: 40px; height: 40px; font-size: 0.85rem; }
+    .dropdown-user-header h4 { font-size: 0.85rem; color: #f0f9ff; font-weight: 700; }
+    .dropdown-user-header p { font-size: 0.7rem; color: #6b8598; margin-top: 2px; }
+    .role-option { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.75rem; border-radius: 10px; cursor: pointer; transition: all 0.15s; margin-bottom: 0.15rem; }
+    .role-option:hover { background: #141f26; }
+    .role-option.active { background: rgba(74,222,128,0.1); }
+    .role-option.active .role-name { color: #4ade80; }
+    .role-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .role-icon.admin { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .role-icon.researcher { background: rgba(6,182,212,0.15); color: #06b6d4; }
+    .role-icon.fieldofficer { background: rgba(249,115,22,0.15); color: #f97316; }
+    .role-info { flex: 1; min-width: 0; }
+    .role-name { font-size: 0.82rem; color: #e0e7ee; font-weight: 600; }
+    .role-desc { font-size: 0.68rem; color: #5b7a8c; margin-top: 1px; }
+    .role-check { color: #4ade80; font-size: 0.85rem; opacity: 0; }
+    .role-option.active .role-check { opacity: 1; }
+    .dropdown-divider { height: 1px; background: #1a2830; margin: 0.5rem 0.3rem; }
+    .dropdown-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.75rem; border-radius: 8px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; }
+    .dropdown-item:hover { background: #141f26; color: #e0e7ee; }
+    .dropdown-item i { width: 18px; text-align: center; font-size: 0.85rem; }
+
+    /* ============ MAIN LAYOUT ============ */
+    .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    .sidebar { width: 210px; background: #0b1115; border-right: 1px solid #1a2830; display: flex; flex-direction: column; padding: 1.2rem 0.85rem; overflow-y: auto; flex-shrink: 0; }
+    .nav-section { margin-bottom: 1.5rem; }
+    .nav-section-title { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: #5b7a8c; font-weight: 700; padding: 0 0.75rem; margin-bottom: 0.6rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.62rem 0.85rem; border-radius: 10px; color: #94a3b8; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.18s; margin-bottom: 0.1rem; position: relative; }
+    .nav-item i { width: 20px; font-size: 0.9rem; color: #5b7a8c; text-align: center; flex-shrink: 0; }
+    .nav-item:hover { background: #141f26; color: #e0e7ee; }
+    .nav-item.active { background: linear-gradient(90deg, rgba(74,222,128,0.12), rgba(74,222,128,0.03)); color: #4ade80; }
+    .nav-item.active::before { content: ''; position: absolute; left: -0.85rem; top: 20%; bottom: 20%; width: 3px; background: #4ade80; border-radius: 0 3px 3px 0; }
+    .nav-item.active i { color: #4ade80; }
+
+    .species-list { display: flex; flex-direction: column; }
+    .species-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.85rem; font-size: 0.8rem; color: #94a3b8; cursor: pointer; border-radius: 8px; }
+    .species-item:hover { background: #141f26; color: #e0e7ee; }
+    .species-item .sprite-mini { width: 22px; height: 22px; object-fit: contain; }
+    .species-item .count { margin-left: auto; font-size: 0.72rem; color: #5b7a8c; font-weight: 600; }
+
+    .sim-card { margin-top: auto; background: linear-gradient(135deg, #12201c, #0f1a18); border: 1px solid #1e3a2e; border-radius: 12px; padding: 0.9rem; }
+    .sim-card-header { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #4ade80; font-weight: 700; margin-bottom: 0.4rem; }
+    .sim-card-header .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+    .sim-card p { font-size: 0.7rem; color: #6b8598; line-height: 1.5; }
+
+    /* ============ CONTENT — SCROLLABLE ============ */
+    .content { flex: 1; overflow: hidden; position: relative; min-width: 0; display: flex; flex-direction: column; }
+    .page { display: none; height: 100%; padding: 1.2rem; overflow-y: auto; overflow-x: hidden; flex-direction: column; gap: 1rem; min-height: 0; }
+    .page.active { display: flex; }
+
+    /* Dashboard is special — no page scroll, uses grid */
+    #page-dashboard { display: none; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: minmax(360px, 1fr) auto; gap: 1rem; padding: 1.2rem; overflow: hidden; }
+    #page-dashboard.active { display: grid; }
+
+    /* ============ CARDS & SECTIONS ============ */
+    .card { background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 1rem 1.2rem; display: flex; flex-direction: column; min-width: 0; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; flex-shrink: 0; gap: 0.6rem; flex-wrap: wrap; }
+    .card-title { font-size: 0.85rem; font-weight: 700; color: #f0f9ff; display: flex; align-items: center; gap: 0.5rem; }
+    .card-title i { color: #4ade80; font-size: 0.85rem; }
+    .card-action { font-size: 0.7rem; color: #4ade80; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .card-action:hover { text-decoration: underline; }
+
+    /* ============ PAGE HEADERS ============ */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; flex-shrink: 0; }
+    .page-header h2 { font-size: 1.35rem; font-weight: 800; color: #f0f9ff; letter-spacing: -0.02em; }
+    .page-header p { font-size: 0.82rem; color: #6b8598; margin-top: 0.2rem; }
+    .page-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* ============ STATS ============ */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; flex-shrink: 0; }
+    .stat-card { background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 1rem 1.2rem; cursor: pointer; transition: all 0.2s; min-width: 0; }
+    .stat-card:hover { border-color: #2a3a42; transform: translateY(-2px); }
+    .stat-card-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b8598; font-weight: 700; margin-bottom: 0.5rem; }
+    .stat-card-value { font-size: 1.9rem; font-weight: 800; color: #f0f9ff; line-height: 1; letter-spacing: -0.02em; word-break: break-word; }
+    .stat-card-sub { font-size: 0.72rem; color: #6b8598; margin-top: 0.4rem; }
+
+    /* ============ MAP ============ */
+    .map-container { position: relative; background: #1a2a20; border-radius: 16px; overflow: hidden; border: 1px solid #1f333d; box-shadow: 0 10px 30px rgba(0,0,0,0.4); min-height: 360px; display: flex; flex-direction: column; }
+    #map, #mapFull, #mapPatrol { width: 100%; height: 100%; flex: 1; min-height: 0; }
+
+    .animal-markers { position: absolute; inset: 0; pointer-events: none; z-index: 500; }
+    .animal-marker { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer; transition: left 0.3s linear, top 0.3s linear; will-change: left, top; }
+    .animal-sprite-wrap { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+    .animal-sprite { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.65)); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .animal-marker:hover .animal-sprite { transform: scale(1.15) translateY(-3px); }
+    .animal-label { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: rgba(11, 17, 21, 0.96); backdrop-filter: blur(8px); border: 1px solid #2a3a42; border-radius: 20px; padding: 3px 10px; font-size: 0.65rem; font-weight: 700; color: #f0f9ff; white-space: nowrap; display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    .animal-label .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+    .animal-label.warning .dot { background: #f97316; }
+    .animal-label.critical .dot { background: #ef4444; }
+    .animal-marker.selected::before { content: ''; position: absolute; top: 50%; left: 50%; width: 82px; height: 82px; transform: translate(-50%, -50%); border: 2px dashed #4ade80; border-radius: 50%; animation: spinRing 8s linear infinite; opacity: 0.9; pointer-events: none; }
+    @keyframes spinRing { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    .animal-tooltip { position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%) translateY(8px); background: rgba(11, 17, 21, 0.98); backdrop-filter: blur(12px); border: 1px solid #2a3a42; border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.72rem; color: #e0e7ee; white-space: nowrap; box-shadow: 0 12px 30px rgba(0,0,0,0.7); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 1000; min-width: 200px; }
+    .animal-marker:hover .animal-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .animal-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: rgba(11, 17, 21, 0.98); }
+    .tooltip-header { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #f0f9ff; margin-bottom: 0.4rem; padding-bottom: 0.4rem; border-bottom: 1px solid #1f333d; font-size: 0.78rem; }
+    .tooltip-header .health-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .tooltip-row { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 0.25rem; font-size: 0.7rem; }
+    .tooltip-row .label { color: #6b8598; }
+    .tooltip-row .value { color: #e0e7ee; font-weight: 600; }
+    .tooltip-hint { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid #1f333d; color: #5b7a8c; font-size: 0.65rem; text-align: center; font-style: italic; }
+
+    .map-controls { position: absolute; top: 1rem; left: 1rem; display: flex; flex-direction: column; gap: 0.4rem; z-index: 600; }
+    .map-controls-right { position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.4rem; z-index: 600; }
+    .map-btn { width: 38px; height: 38px; background: rgba(11, 17, 21, 0.94); border: 1px solid #2a3a42; border-radius: 10px; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; backdrop-filter: blur(8px); transition: all 0.2s; }
+    .map-btn:hover { color: #4ade80; border-color: #4ade80; transform: scale(1.05); }
+    .map-btn.active { color: #4ade80; border-color: #4ade80; background: rgba(74,222,128,0.15); }
+
+    .map-legend { position: absolute; bottom: 1rem; left: 1rem; background: rgba(11, 17, 21, 0.94); backdrop-filter: blur(10px); border: 1px solid #2a3a42; border-radius: 12px; padding: 0.85rem 1rem; z-index: 600; }
+    .legend-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b8598; font-weight: 700; margin-bottom: 0.5rem; }
+    .map-legend-item { display: flex; align-items: center; gap: 0.55rem; font-size: 0.75rem; color: #cbd5e1; margin-bottom: 0.35rem; font-weight: 500; }
+    .map-legend-item:last-child { margin-bottom: 0; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
+    .legend-dot.healthy { background: #4ade80; color: #4ade80; }
+    .legend-dot.warning { background: #f97316; color: #f97316; }
+    .legend-dot.critical { background: #ef4444; color: #ef4444; }
+
+    /* ============ ANIMAL PANEL ============ */
+    .animal-panel { background: #0b1115; border: 1px solid #1f333d; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.4); min-height: 360px; max-height: 100%; }
+    .panel-header { padding: 1rem 1.2rem 0.6rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+    .panel-title-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+    .panel-title-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .panel-title-row h3 { font-size: 1.15rem; font-weight: 800; color: #f0f9ff; letter-spacing: -0.01em; }
+    .health-badge { font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.7rem; border-radius: 30px; letter-spacing: 0.03em; text-transform: capitalize; }
+    .health-badge.healthy { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.35); }
+    .health-badge.warning { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.35); }
+    .health-badge.critical { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }
+    .panel-sub { font-size: 0.75rem; color: #6b8598; }
+    .close-btn { width: 30px; height: 30px; border-radius: 8px; background: #141f26; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+    .close-btn:hover { background: #1a2a30; color: #ef4444; }
+
+    .panel-tabs { display: flex; padding: 0 0.5rem; border-bottom: 1px solid #1a2830; margin-top: 0.4rem; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+    .panel-tabs::-webkit-scrollbar { display: none; }
+    .panel-tab { padding: 0.7rem 0.9rem; font-size: 0.78rem; font-weight: 600; color: #6b8598; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; position: relative; margin-bottom: -1px; }
+    .panel-tab:hover { color: #94a3b8; }
+    .panel-tab.active { color: #4ade80; border-bottom-color: #4ade80; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 1rem 1.2rem 1.2rem; min-height: 0; }
+
+    .animal-photo { width: 100%; height: 160px; border-radius: 12px; background: linear-gradient(135deg, #1a3a1e, #0f2818); margin-bottom: 1rem; overflow: hidden; border: 1px solid #1f333d; }
+    .animal-photo img { height: 100%; width: 100%; object-fit: cover; }
+
+    .info-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b8598; font-weight: 700; margin: 0.8rem 0 0.5rem; }
+    .info-table { width: 100%; font-size: 0.78rem; }
+    .info-table tr { border-bottom: 1px solid #141f26; }
+    .info-table tr:last-child { border-bottom: none; }
+    .info-table td { padding: 0.5rem 0; color: #94a3b8; }
+    .info-table td:first-child { color: #6b8598; width: 45%; }
+    .info-table td:last-child { color: #e0e7ee; font-weight: 600; text-align: right; }
+
+    .vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.6rem; }
+    .vital-card { background: #141f26; border: 1px solid #1f333d; border-radius: 10px; padding: 0.7rem; min-width: 0; }
+    .vital-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b8598; font-weight: 700; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.3rem; }
+    .vital-label i { color: #4ade80; font-size: 0.7rem; }
+    .vital-value { font-size: 1.05rem; font-weight: 800; color: #f0f9ff; display: flex; align-items: baseline; gap: 0.2rem; letter-spacing: -0.01em; word-break: break-word; }
+    .vital-value small { font-size: 0.65rem; color: #6b8598; font-weight: 500; }
+
+    .record-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem; background: #141f26; border-radius: 10px; margin-bottom: 0.5rem; border: 1px solid #1f333d; min-width: 0; }
+    .record-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(74,222,128,0.12); color: #4ade80; font-size: 0.8rem; flex-shrink: 0; }
+    .record-info { flex: 1; min-width: 0; }
+    .record-name { font-size: 0.8rem; color: #e0e7ee; font-weight: 600; }
+    .record-date { font-size: 0.68rem; color: #5b7a8c; margin-top: 1px; }
+    .record-status { font-size: 0.68rem; font-weight: 700; color: #4ade80; }
+
+    /* ============ BOTTOM ROW ============ */
+    .bottom-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; height: 220px; min-height: 0; }
+    .bottom-row .card { padding: 1rem 1.2rem; }
+
+    .activity-list { display: flex; flex-direction: column; gap: 0.4rem; overflow-y: auto; flex: 1; min-height: 0; }
+    .activity-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.6rem; border-radius: 8px; cursor: pointer; }
+    .activity-item:hover { background: #141f26; }
+    .activity-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+    .activity-icon.green { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .activity-icon.blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .activity-icon.orange { background: rgba(249,115,22,0.15); color: #f97316; }
+    .activity-icon.red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .activity-icon.purple { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+    .activity-text { flex: 1; font-size: 0.76rem; color: #e0e7ee; line-height: 1.3; min-width: 0; }
+    .activity-text strong { color: #f0f9ff; font-weight: 700; }
+    .activity-meta { font-size: 0.66rem; color: #5b7a8c; margin-top: 2px; }
+
+    .chart-wrap { flex: 1; position: relative; min-height: 0; }
+
+    .zone-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 0.5rem; flex: 1; }
+    .zone-item { border-radius: 8px; padding: 0.5rem 0.6rem; position: relative; overflow: hidden; cursor: pointer; transition: all 0.25s; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid; min-height: 0; }
+    .zone-item:hover { transform: translateY(-2px); }
+    .zone-item-name { font-size: 0.65rem; font-weight: 700; color: white; line-height: 1.2; }
+    .zone-item-count { font-size: 0.6rem; color: rgba(255,255,255,0.75); font-weight: 500; }
+    .zone-mini-icon { position: absolute; bottom: 3px; right: 4px; font-size: 1.1rem; opacity: 0.9; }
+
+    /* ============ FILTERS ============ */
+    .filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0; }
+    .filter-btn { background: #141f26; border: 1px solid #1f333d; border-radius: 10px; padding: 0.5rem 0.9rem; color: #94a3b8; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; font-family: inherit; white-space: nowrap; }
+    .filter-btn:hover { border-color: #4ade80; color: #4ade80; }
+    .filter-btn.active { background: rgba(74,222,128,0.1); border-color: #4ade80; color: #4ade80; }
+
+    /* ============ TABLES ============ */
+    .data-table-wrap { background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; overflow: auto; flex-shrink: 0; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    .data-table thead { background: #141f26; position: sticky; top: 0; z-index: 1; }
+    .data-table th { text-align: left; padding: 0.85rem 1rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b8598; font-weight: 700; white-space: nowrap; }
+    .data-table td { padding: 0.85rem 1rem; font-size: 0.82rem; color: #e0e7ee; border-top: 1px solid #141f26; }
+    .data-table tbody tr { cursor: pointer; }
+    .data-table tbody tr:hover { background: #141f26; }
+
+    .status-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 20px; white-space: nowrap; }
+    .status-pill.healthy { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .status-pill.warning { background: rgba(249,115,22,0.12); color: #f97316; }
+    .status-pill.critical { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .status-pill.neutral { background: rgba(107,114,128,0.15); color: #9ca3af; }
+    .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    /* ============ RESEARCHER — FIXED LAYOUT ============ */
+    #page-api { padding: 1.2rem; }
+    
+    .api-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; }
+    .api-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+
+    .research-banner { background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(14,165,233,0.05)); border: 1px solid rgba(6,182,212,0.3); border-radius: 14px; padding: 1rem 1.2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .research-banner-icon { width: 46px; height: 46px; background: linear-gradient(135deg, #06b6d4, #0ea5e9); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; flex-shrink: 0; }
+    .research-banner h3 { font-size: 0.95rem; color: #f0f9ff; font-weight: 700; margin-bottom: 0.15rem; }
+    .research-banner p { font-size: 0.78rem; color: #94a3b8; }
+
+    .api-key-box { background: #0d1a1e; border: 1px solid rgba(6,182,212,0.3); border-radius: 12px; padding: 1rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .api-key-box code { flex: 1; min-width: 200px; font-family: 'Courier New', monospace; font-size: 0.78rem; color: #4ade80; background: #060d0e; padding: 0.6rem 0.9rem; border-radius: 8px; border: 1px solid #1a2830; overflow-x: auto; white-space: nowrap; }
+
+    .endpoint-row { display: flex; align-items: center; gap: 0.8rem; padding: 0.75rem 1rem; background: #141f26; border-radius: 10px; margin-bottom: 0.5rem; border: 1px solid #1f333d; font-size: 0.8rem; cursor: pointer; flex-wrap: wrap; transition: all 0.2s; }
+    .endpoint-row:hover { border-color: #06b6d4; background: rgba(6,182,212,0.05); }
+    .endpoint-row:last-child { margin-bottom: 0; }
+    .method-badge { font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; letter-spacing: 0.03em; min-width: 48px; text-align: center; flex-shrink: 0; }
+    .method-badge.get { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .method-badge.post { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .endpoint-path { font-family: 'Courier New', monospace; color: #cbd5e1; flex: 1; min-width: 150px; word-break: break-all; }
+    .endpoint-desc { color: #6b8598; font-size: 0.72rem; }
+
+    .download-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+    .download-card { background: #0b1115; border: 1px solid #1f333d; border-radius: 12px; padding: 1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.8rem; min-width: 0; }
+    .download-card:hover { border-color: #06b6d4; background: rgba(6,182,212,0.05); transform: translateY(-2px); }
+    .download-card-icon { width: 40px; height: 40px; background: rgba(6,182,212,0.15); color: #06b6d4; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .download-card-info { min-width: 0; }
+    .download-card-info h4 { font-size: 0.82rem; color: #f0f9ff; font-weight: 700; margin-bottom: 2px; }
+    .download-card-info p { font-size: 0.68rem; color: #6b8598; }
+
+    /* API Data Explorer */
+    .explorer-layout { display: grid; grid-template-columns: minmax(260px, 1fr) 2fr; gap: 1rem; min-height: 0; }
+    .query-panel { background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+    .response-panel { background: #060d0e; border: 1px solid #1f333d; border-radius: 14px; padding: 1rem; overflow: auto; max-height: 420px; }
+    .response-panel pre { font-family: 'Courier New', monospace; font-size: 0.75rem; color: #4ade80; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+
+    .form-label-sm { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.3rem; display: block; }
+    .form-input-sm { width: 100%; background: #141f26; border: 1px solid #1f333d; border-radius: 8px; padding: 0.5rem 0.7rem; color: #e0e7ee; font-family: inherit; font-size: 0.8rem; outline: none; }
+    .form-input-sm:focus { border-color: #06b6d4; }
+
+    /* ============ DEVICE MANAGEMENT ============ */
+    .device-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .device-stat { background: #0b1115; border: 1px solid #1f333d; border-radius: 12px; padding: 1rem; display: flex; align-items: center; gap: 0.8rem; }
+    .device-stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .device-stat-info h4 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b8598; font-weight: 700; margin-bottom: 0.2rem; }
+    .device-stat-info .val { font-size: 1.3rem; font-weight: 800; color: #f0f9ff; }
+
+    .battery-bar { width: 100%; height: 5px; background: #1f333d; border-radius: 3px; overflow: hidden; margin-top: 0.3rem; }
+    .battery-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* ============ USER & ROLE ============ */
+    .perm-matrix { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .perm-matrix th { padding: 0.7rem 0.5rem; font-size: 0.65rem; text-transform: uppercase; color: #6b8598; font-weight: 700; text-align: center; border-bottom: 1px solid #1f333d; }
+    .perm-matrix th:first-child { text-align: left; }
+    .perm-matrix td { padding: 0.7rem 0.5rem; text-align: center; border-bottom: 1px solid #141f26; color: #94a3b8; }
+    .perm-matrix td:first-child { text-align: left; color: #e0e7ee; font-weight: 500; }
+    .perm-check { color: #4ade80; font-size: 1rem; }
+    .perm-x { color: #4b5563; font-size: 1rem; }
+
+    /* ============ FIELD OFFICER ============ */
+    .field-alert-card { background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(239,68,68,0.06)); border: 1px solid rgba(249,115,22,0.35); border-radius: 14px; padding: 1rem 1.2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .field-alert-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #f97316, #ef4444); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; flex-shrink: 0; animation: pulse 2s infinite; }
+    .field-alert-info { flex: 1; min-width: 200px; }
+    .field-alert-info h4 { font-size: 0.88rem; color: #f0f9ff; font-weight: 700; margin-bottom: 0.15rem; }
+    .field-alert-info p { font-size: 0.75rem; color: #94a3b8; }
+    .field-alert-action { background: #f97316; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .field-alert-action:hover { background: #ea580c; }
+
+    .task-card { display: flex; align-items: center; gap: 0.8rem; background: #0b1115; border: 1px solid #1f333d; border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 0.6rem; cursor: pointer; transition: all 0.2s; flex-wrap: wrap; }
+    .task-card:hover { border-color: #4ade80; transform: translateX(4px); }
+    .task-card.done { opacity: 0.6; }
+    .task-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #2a3a42; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+    .task-checkbox.done { background: #4ade80; border-color: #4ade80; color: #0a0f14; }
+    .task-info { flex: 1; min-width: 200px; }
+    .task-title { font-size: 0.85rem; color: #e0e7ee; font-weight: 600; }
+    .task-card.done .task-title { text-decoration: line-through; color: #6b8598; }
+    .task-meta { font-size: 0.7rem; color: #5b7a8c; margin-top: 2px; }
+    .task-priority { font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 20px; }
+    .task-priority.high { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .task-priority.medium { background: rgba(249,115,22,0.15); color: #f97316; }
+    .task-priority.low { background: rgba(74,222,128,0.15); color: #4ade80; }
+
+    /* ============ REPORTS ============ */
+    .reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+    .reports-grid .card { min-height: 300px; }
+
+    /* ============ SETTINGS ============ */
+    .settings-card { background: #0b1115; border: 1px solid #1f333d; border-radius: 14px; padding: 1.2rem; max-width: 100%; }
+    .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #141f26; font-size: 0.85rem; gap: 1rem; flex-wrap: wrap; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row span { color: #94a3b8; }
+    .toggle-btn { background: #141f26; border: 1px solid #1f333d; border-radius: 8px; padding: 0.35rem 0.9rem; color: #94a3b8; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; min-width: 70px; }
+    .toggle-btn.on { background: rgba(74,222,128,0.12); border-color: #4ade80; color: #4ade80; }
+    .settings-select { background: #141f26; border: 1px solid #1f333d; border-radius: 8px; padding: 0.4rem 0.9rem; color: #e0e7ee; font-family: inherit; font-size: 0.82rem; }
+
+    /* ============ MODAL ============ */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.25s; padding: 1rem; overflow-y: auto; }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal { background: #0b1115; border: 1px solid #1f333d; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; transform: scale(0.9) translateY(20px); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 30px 60px rgba(0,0,0,0.7); margin: auto; }
+    .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+    .modal.modal-lg { max-width: 720px; }
+    .modal-header { padding: 1.2rem 1.4rem; border-bottom: 1px solid #1a2830; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #0b1115; z-index: 10; }
+    .modal-header h3 { font-size: 1.05rem; color: #f0f9ff; font-weight: 700; }
+    .modal-close { width: 30px; height: 30px; border-radius: 8px; background: #141f26; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: #1a2a30; color: #ef4444; }
+    .modal-body { padding: 1.4rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.4rem; }
+    .form-input, .form-select, .form-textarea { width: 100%; background: #141f26; border: 1px solid #1f333d; border-radius: 10px; padding: 0.65rem 0.9rem; color: #e0e7ee; font-family: inherit; font-size: 0.85rem; outline: none; transition: all 0.2s; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #4ade80; background: #17282f; }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    .form-help { font-size: 0.7rem; color: #5b7a8c; margin-top: 0.3rem; }
+    .modal-footer { padding: 1rem 1.4rem; border-top: 1px solid #1a2830; display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; position: sticky; bottom: 0; background: #0b1115; }
+    .btn-secondary { background: #141f26; border: 1px solid #1f333d; padding: 0.6rem 1.2rem; border-radius: 10px; color: #94a3b8; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-secondary:hover { background: #1a2a30; color: #e0e7ee; }
+    .btn-primary { background: linear-gradient(135deg, #4ade80, #22c55e); border: none; padding: 0.6rem 1.4rem; border-radius: 10px; color: #0a0f14; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 4px 12px rgba(74,222,128,0.25); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,222,128,0.35); }
+
+    /* Fullscreen Map */
+    .map-fullscreen-modal { position: fixed; inset: 0; background: #0a0f14; z-index: 3000; display: none; flex-direction: column; }
+    .map-fullscreen-modal.open { display: flex; }
+    .map-fullscreen-header { height: 60px; background: #0b1115; border-bottom: 1px solid #1a2830; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; flex-shrink: 0; gap: 1rem; flex-wrap: wrap; }
+    .map-fullscreen-header h3 { font-size: 1rem; color: #f0f9ff; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; }
+    .map-fullscreen-body { flex: 1; position: relative; min-height: 0; }
+    #mapFullscreen { width: 100%; height: 100%; }
+
+    /* ============ TOAST ============ */
+    .toast-container { position: fixed; top: 80px; right: 20px; z-index: 4000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; max-width: calc(100vw - 40px); }
+    .toast { background: rgba(11, 17, 21, 0.96); backdrop-filter: blur(12px); border: 1px solid #2a3a42; border-left: 3px solid #4ade80; border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.78rem; color: #e0e7ee; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 0.6rem; pointer-events: auto; max-width: 340px; font-weight: 500; }
+    .toast.warning { border-left-color: #f97316; }
+    .toast.critical { border-left-color: #ef4444; }
+    .toast.success { border-left-color: #4ade80; }
+    .toast i { font-size: 0.9rem; color: #4ade80; }
+    .toast.warning i { color: #f97316; }
+    .toast.critical i { color: #ef4444; }
+
+    /* Leaflet */
+    .leaflet-container { background: #1a2a20 !important; font-family: 'Inter', sans-serif !important; }
+    .leaflet-control-attribution { display: none !important; }
+    .leaflet-control-zoom { display: none !important; }
+
+    /* History timeline */
+    .history-timeline { position: relative; padding-left: 20px; margin-top: 0.5rem; }
+    .history-timeline::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: #1f333d; }
+    .history-item { position: relative; padding: 0.5rem 0; font-size: 0.75rem; color: #94a3b8; }
+    .history-item::before { content: ''; position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; border: 2px solid #0b1115; }
+    .history-item .time { color: #6b8598; font-size: 0.68rem; margin-right: 0.5rem; }
+    .history-item .action { color: #e0e7ee; font-weight: 500; }
+
+    /* Draw banner */
+    .draw-banner { position: absolute; top: 1rem; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(34,197,94,0.08)); border: 1px solid #4ade80; border-radius: 12px; padding: 0.7rem 1.2rem; display: none; align-items: center; gap: 0.8rem; z-index: 700; color: #4ade80; font-size: 0.82rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.5); backdrop-filter: blur(12px); max-width: calc(100% - 2rem); flex-wrap: wrap; }
+    .draw-banner.active { display: flex; }
+    .draw-banner button { background: rgba(74,222,128,0.2); border: 1px solid #4ade80; color: #4ade80; padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: 700; font-family: inherit; }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1f333d; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a3a42; }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1400px) {
+      #page-dashboard { grid-template-columns: minmax(0, 1fr) 300px; }
+    }
+    @media (max-width: 1100px) {
+      #page-dashboard { grid-template-columns: 1fr; grid-template-rows: auto auto auto; overflow-y: auto; height: auto; }
+      .bottom-row { grid-template-columns: 1fr; height: auto; }
+      .bottom-row .card { min-height: 200px; }
+      .explorer-layout { grid-template-columns: 1fr; }
+      .sidebar { width: 64px; padding: 1rem 0.5rem; }
+      .sidebar .nav-item span, .sidebar .nav-section-title, .sidebar .species-list, .sidebar .sim-card { display: none; }
+      .nav-item { justify-content: center; padding: 0.62rem; }
+      .nav-item i { width: auto; }
+      .brand-text p { display: none; }
+    }
+    @media (max-width: 768px) {
+      .topbar { padding: 0 0.75rem; gap: 0.75rem; }
+      .brand-text { display: none; }
+      .system-status { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      .page { padding: 0.75rem; }
+      #page-dashboard { padding: 0.75rem; gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><i class="fas fa-paw"></i></div>
+      <div class="brand-text"><h1>Wildlife Haven</h1><p>Monitoring & Conservation</p></div>
+    </div>
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" id="globalSearch" placeholder="Search animals, zones, or IDs...">
+    </div>
+    <div class="topbar-right">
+      <div class="system-status"><span class="status-dot"></span> System Online</div>
+      <div class="notif-wrap">
+        <div class="notif-btn" id="notifBtn"><i class="fas fa-bell"></i><span class="notif-badge" id="notifBadge">4</span></div>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header"><h4>Notifications</h4><span id="markAllRead">Mark all read</span></div>
+          <div class="notif-item"><div class="notif-item-icon red"><i class="fas fa-exclamation-circle"></i></div><div class="notif-item-text"><strong>TIGER-001</strong> showing abnormal behavior in Zone 5<div class="notif-item-time">24 minutes ago</div></div></div>
+          <div class="notif-item"><div class="notif-item-icon orange"><i class="fas fa-thermometer-half"></i></div><div class="notif-item-text"><strong>COW-001</strong> temperature rising (39.4°C)<div class="notif-item-time">1 hour ago</div></div></div>
+          <div class="notif-item"><div class="notif-item-icon green"><i class="fas fa-check-circle"></i></div><div class="notif-item-text">Sensor update completed for <strong>all 6 animals</strong><div class="notif-item-time">2 hours ago</div></div></div>
+          <div class="notif-item"><div class="notif-item-icon orange"><i class="fas fa-wifi"></i></div><div class="notif-item-text"><strong>WOLF-001</strong> sensor connection unstable<div class="notif-item-time">3 hours ago</div></div></div>
+        </div>
+      </div>
+      <div class="user-profile-wrap">
+        <div class="user-profile" id="userProfileBtn">
+          <div class="user-avatar admin" id="topAvatar">AD</div>
+          <div class="user-info"><h4 id="topUserName">Admin</h4><p id="topUserRole">Administrator</p></div>
+          <i class="fas fa-chevron-down chevron"></i>
+        </div>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-user-header"><div class="user-avatar admin" id="ddAvatar">AD</div><div><h4 id="ddName">Admin User</h4><p id="ddEmail">admin@wildlifehaven.org</p></div></div>
+          <div class="dropdown-section-title">Switch Account Role</div>
+          <div class="role-option active" data-role="admin"><div class="role-icon admin"><i class="fas fa-user-shield"></i></div><div class="role-info"><div class="role-name">Administrator</div><div class="role-desc">Full system access</div></div><i class="fas fa-check role-check"></i></div>
+          <div class="role-option" data-role="researcher"><div class="role-icon researcher"><i class="fas fa-flask"></i></div><div class="role-info"><div class="role-name">Researcher</div><div class="role-desc">Data & API access</div></div><i class="fas fa-check role-check"></i></div>
+          <div class="role-option" data-role="fieldofficer"><div class="role-icon fieldofficer"><i class="fas fa-binoculars"></i></div><div class="role-info"><div class="role-name">Field Officer</div><div class="role-desc">Field tasks & alerts</div></div><i class="fas fa-check role-check"></i></div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item" id="ddProfile"><i class="fas fa-user"></i> My Profile</div>
+          <div class="dropdown-item" id="ddPrefs"><i class="fas fa-cog"></i> Preferences</div>
+          <div class="dropdown-item" id="ddSignOut" style="color:#ef4444;"><i class="fas fa-sign-out-alt"></i> Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="nav-section">
+        <div class="nav-section-title" id="navMainTitle">Main</div>
+        <div id="navItemsMain"></div>
+      </div>
+      <div class="nav-section" id="speciesNavSection">
+        <div class="nav-section-title">Animal Types</div>
+        <div class="species-list" id="speciesList"></div>
+      </div>
+      <div class="sim-card">
+        <div class="sim-card-header"><span class="dot"></span> Simulated Data</div>
+        <p>Live simulation running<br>Updates every 30 seconds</p>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- ===== DASHBOARD ===== -->
+      <div class="page active" id="page-dashboard">
+        <div class="map-container">
+          <div id="map"></div>
+          <div class="animal-markers" id="animalMarkers"></div>
+          <div class="draw-banner" id="drawBanner"><i class="fas fa-draw-polygon"></i><span>Draw new zone: click points on map.</span><button id="cancelDraw">Cancel</button></div>
+          <div class="map-controls">
+            <button class="map-btn" id="zoomIn" title="Zoom In"><i class="fas fa-plus"></i></button>
+            <button class="map-btn" id="zoomOut" title="Zoom Out"><i class="fas fa-minus"></i></button>
+            <button class="map-btn" id="resetView" title="Fit All"><i class="fas fa-crosshairs"></i></button>
+            <button class="map-btn" id="addZoneBtn" title="Add Zone"><i class="fas fa-draw-polygon"></i></button>
+          </div>
+          <div class="map-controls-right">
+            <button class="map-btn" id="fullscreenBtn" title="Fullscreen"><i class="fas fa-expand"></i></button>
+          </div>
+          <div class="map-legend">
+            <div class="legend-title">Status</div>
+            <div class="map-legend-item"><span class="legend-dot healthy"></span> Healthy</div>
+            <div class="map-legend-item"><span class="legend-dot warning"></span> Warning</div>
+            <div class="map-legend-item"><span class="legend-dot critical"></span> Critical</div>
+          </div>
+        </div>
+
+        <div class="animal-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <div class="panel-title-row"><h3 id="panelAnimalId">COW-001</h3><span class="health-badge healthy" id="panelHealthBadge">Healthy</span></div>
+              <div class="panel-sub" id="panelAnimalSub">Holstein Friesian · Female · 5 years</div>
+            </div>
+            <button class="close-btn" id="panelClose"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="panel-tabs">
+            <div class="panel-tab active" data-ptab="overview">Overview</div>
+            <div class="panel-tab" data-ptab="health">Health</div>
+            <div class="panel-tab" data-ptab="records">Records</div>
+            <div class="panel-tab" data-ptab="location">Location</div>
+            <div class="panel-tab" data-ptab="history">History</div>
+          </div>
+          <div class="panel-body">
+            <div class="ptab-content" id="ptab-overview">
+              <div class="animal-photo"><img id="panelAnimalImg" src="" alt="Animal"></div>
+              <div class="info-section-title">Basic Information</div>
+              <table class="info-table">
+                <tr><td>Species</td><td id="infoSpecies">Cow</td></tr>
+                <tr><td>Breed</td><td id="infoBreed">Holstein Friesian</td></tr>
+                <tr><td>Gender</td><td id="infoGender">Female</td></tr>
+                <tr><td>Age</td><td id="infoAge">5 years</td></tr>
+                <tr><td>Weight</td><td id="infoWeight">480 kg</td></tr>
+                <tr><td>Zone</td><td id="infoZone">North Field</td></tr>
+                <tr><td>Tag ID</td><td id="infoTagId">COW-001</td></tr>
+              </table>
+              <div class="vitals-grid">
+                <div class="vital-card"><div class="vital-label"><i class="fas fa-heart"></i> Health</div><div class="vital-value" id="vitalHealth" style="color:#4ade80; font-size:0.95rem;">Good</div></div>
+                <div class="vital-card"><div class="vital-label"><i class="fas fa-running"></i> Activity</div><div class="vital-value" id="vitalActivity" style="font-size:0.95rem;">Grazing</div></div>
+                <div class="vital-card"><div class="vital-label"><i class="fas fa-thermometer-half"></i> Temp</div><div class="vital-value" id="vitalTemp">38.6<small>°C</small></div></div>
+                <div class="vital-card"><div class="vital-label"><i class="fas fa-heartbeat"></i> HR</div><div class="vital-value" id="vitalHR">72<small>bpm</small></div></div>
+              </div>
+            </div>
+            <div class="ptab-content" id="ptab-health" style="display:none;">
+              <div class="vitals-grid">
+                <div class="vital-card"><div class="vital-label">Health Score</div><div class="vital-value" id="healthScore">92<small>%</small></div></div>
+                <div class="vital-card"><div class="vital-label">Last Vet Check</div><div class="vital-value" style="font-size:0.85rem;">12d ago</div></div>
+              </div>
+              <div class="info-section-title">Temperature Trend</div>
+              <div style="height:120px;"><canvas id="healthTempChart"></canvas></div>
+              <div class="info-section-title">Heart Rate Trend</div>
+              <div style="height:120px;"><canvas id="healthHRChart"></canvas></div>
+            </div>
+            <div class="ptab-content" id="ptab-records" style="display:none;">
+              <div class="info-section-title">Vaccination & Medical</div>
+              <div class="record-item"><div class="record-icon"><i class="fas fa-syringe"></i></div><div class="record-info"><div class="record-name">FMD Vaccine</div><div class="record-date">2025-03-10</div></div><div class="record-status">Completed</div></div>
+              <div class="record-item"><div class="record-icon"><i class="fas fa-syringe"></i></div><div class="record-info"><div class="record-name">Brucellosis Vaccine</div><div class="record-date">2025-02-15</div></div><div class="record-status">Completed</div></div>
+              <div class="record-item"><div class="record-icon"><i class="fas fa-pills"></i></div><div class="record-info"><div class="record-name">Deworming</div><div class="record-date">2025-05-20</div></div><div class="record-status">Completed</div></div>
+            </div>
+            <div class="ptab-content" id="ptab-location" style="display:none;">
+              <div class="vitals-grid">
+                <div class="vital-card"><div class="vital-label">Current Zone</div><div class="vital-value" style="font-size:0.85rem;" id="locZone">Zone 2</div></div>
+                <div class="vital-card"><div class="vital-label">Coordinates</div><div class="vital-value" style="font-size:0.75rem;" id="locCoords">—</div></div>
+              </div>
+              <div class="info-section-title">Recent Positions</div>
+              <div id="locTrail" style="font-size:0.75rem;"></div>
+            </div>
+            <div class="ptab-content" id="ptab-history" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:0.5rem; flex-wrap:wrap;">
+                <div class="info-section-title" style="margin:0;">Route History</div>
+                <button class="filter-btn active" id="downloadHistoryBtn" style="padding:0.35rem 0.7rem; font-size:0.7rem;"><i class="fas fa-download"></i> Download</button>
+              </div>
+              <div id="historyStats" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.8rem;"></div>
+              <div style="font-size:0.72rem; color:#6b8598; margin-bottom:0.3rem;">Historical Route Map</div>
+              <div id="historyMap" style="height:180px; border-radius:10px; overflow:hidden; border:1px solid #1f333d;"></div>
+              <div class="info-section-title">Activity Timeline</div>
+              <div class="history-timeline" id="historyTimeline"></div>
+              <div style="display:flex; gap:0.5rem; margin-top:0.8rem; flex-wrap:wrap;">
+                <button class="filter-btn" style="flex:1; min-width:120px; justify-content:center;" id="playRouteBtn"><i class="fas fa-play"></i> Play Route</button>
+                <button class="filter-btn" style="flex:1; min-width:120px; justify-content:center;" id="showTrailBtn"><i class="fas fa-route"></i> Show Trail</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-row">
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-clock"></i> Recent Activity</div><span class="card-action" id="viewAllActivity">View All</span></div>
+            <div class="activity-list" id="recentActivity"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-chart-line"></i> Activity (24h)</div></div>
+            <div class="chart-wrap"><canvas id="activityChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-layer-group"></i> Zone Overview</div></div>
+            <div class="zone-grid" id="zoneGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANIMALS ===== -->
+      <div class="page" id="page-animals">
+        <div class="page-header">
+          <div><h2>All Animals</h2><p>Browse and manage all monitored wildlife</p></div>
+          <div class="page-header-actions"><button class="btn-primary" id="addAnimalBtn2"><i class="fas fa-plus"></i> Add Animal</button></div>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" data-filter="all"><i class="fas fa-list"></i> All</button>
+          <button class="filter-btn" data-filter="Cow">🐄 Cows</button>
+          <button class="filter-btn" data-filter="Deer">🦌 Deer</button>
+          <button class="filter-btn" data-filter="Bear">🐻 Bears</button>
+          <button class="filter-btn" data-filter="Wolf">🐺 Wolves</button>
+          <button class="filter-btn" data-filter="Tiger">🐯 Tigers</button>
+          <button class="filter-btn" data-filter="Elephant">🐘 Elephants</button>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Species</th><th>Name</th><th>Zone</th><th>Health</th><th>Activity</th><th>Temp</th><th>Heart Rate</th></tr></thead>
+            <tbody id="animalsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== MAP ===== -->
+      <div class="page" id="page-map">
+        <div class="page-header">
+          <div><h2>Map & Habitat</h2><p>Full satellite view of the wildlife reserve</p></div>
+          <div class="page-header-actions">
+            <button class="filter-btn active" id="fitAllBtn"><i class="fas fa-crosshairs"></i> Fit All</button>
+            <button class="filter-btn" id="fullscreenBtn2"><i class="fas fa-expand"></i> Fullscreen</button>
+          </div>
+        </div>
+        <div class="map-container" style="flex:1; min-height:400px;">
+          <div id="mapFull"></div>
+          <div class="animal-markers" id="animalMarkersFull"></div>
+          <div class="map-controls">
+            <button class="map-btn" id="zoomInFull"><i class="fas fa-plus"></i></button>
+            <button class="map-btn" id="zoomOutFull"><i class="fas fa-minus"></i></button>
+            <button class="map-btn" id="resetViewFull"><i class="fas fa-crosshairs"></i></button>
+          </div>
+          <div class="map-legend">
+            <div class="legend-title">Status</div>
+            <div class="map-legend-item"><span class="legend-dot healthy"></span> Healthy</div>
+            <div class="map-legend-item"><span class="legend-dot warning"></span> Warning</div>
+            <div class="map-legend-item"><span class="legend-dot critical"></span> Critical</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== INCIDENTS ===== -->
+      <div class="page" id="page-incidents">
+        <div class="page-header">
+          <div><h2>Incidents</h2><p>Reported incidents and field observations</p></div>
+          <div class="page-header-actions"><button class="btn-primary" id="reportIncidentBtn"><i class="fas fa-plus"></i> Report Incident</button></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-card-label">Total Incidents</div><div class="stat-card-value">12</div><div class="stat-card-sub">this month</div></div>
+          <div class="stat-card"><div class="stat-card-label">Open</div><div class="stat-card-value" style="color:#f97316;">3</div><div class="stat-card-sub">need attention</div></div>
+          <div class="stat-card"><div class="stat-card-label">Resolved</div><div class="stat-card-value" style="color:#4ade80;">9</div><div class="stat-card-sub">this month</div></div>
+          <div class="stat-card"><div class="stat-card-label">Avg Resolution</div><div class="stat-card-value">2.4<small style="font-size:0.9rem;">d</small></div><div class="stat-card-sub">days</div></div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Type</th><th>Animal</th><th>Zone</th><th>Reported</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="incidentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== REPORTS ===== -->
+      <div class="page" id="page-reports">
+        <div class="page-header">
+          <div><h2>Reports & Analytics</h2><p>Historical data and conservation insights</p></div>
+          <div class="page-header-actions"><button class="btn-primary" id="exportReportBtn"><i class="fas fa-download"></i> Export</button></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-card-label">Total Animals</div><div class="stat-card-value" id="reportTotal">6</div><div class="stat-card-sub">monitored</div></div>
+          <div class="stat-card"><div class="stat-card-label">Healthy</div><div class="stat-card-value" style="color:#4ade80;" id="reportHealthy">6</div><div class="stat-card-sub">no warnings</div></div>
+          <div class="stat-card"><div class="stat-card-label">Avg Temp</div><div class="stat-card-value" id="reportAvgTemp">38.4<small style="font-size:0.9rem;">°C</small></div><div class="stat-card-sub">all sensors</div></div>
+          <div class="stat-card"><div class="stat-card-label">Avg HR</div><div class="stat-card-value" id="reportAvgHR">75<small style="font-size:0.9rem;">bpm</small></div><div class="stat-card-sub">last 100</div></div>
+        </div>
+        <div class="reports-grid">
+          <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i> Species Distribution</div></div><div class="chart-wrap"><canvas id="speciesChart"></canvas></div></div>
+          <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-heartbeat"></i> Health Distribution</div></div><div class="chart-wrap"><canvas id="healthDistChart"></canvas></div></div>
+          <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-map-marked-alt"></i> Zone Population</div></div><div class="chart-wrap"><canvas id="zonePopChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- ===== DEVICES & SENSORS ===== -->
+      <div class="page" id="page-devices">
+        <div class="page-header">
+          <div><h2>Device & Sensor Management</h2><p>Collars, telemetry, battery, connectivity</p></div>
+          <div class="page-header-actions">
+            <button class="filter-btn active" id="refreshDevicesBtn"><i class="fas fa-sync"></i> Refresh</button>
+            <button class="btn-primary" id="addDeviceBtn"><i class="fas fa-plus"></i> Add Device</button>
+          </div>
+        </div>
+        <div class="device-grid">
+          <div class="device-stat"><div class="device-stat-icon" style="background:rgba(74,222,128,0.15); color:#4ade80;"><i class="fas fa-satellite-dish"></i></div><div class="device-stat-info"><h4>Total Devices</h4><div class="val">216</div></div></div>
+          <div class="device-stat"><div class="device-stat-icon" style="background:rgba(74,222,128,0.15); color:#4ade80;"><i class="fas fa-check-circle"></i></div><div class="device-stat-info"><h4>Online</h4><div class="val" style="color:#4ade80;">198</div></div></div>
+          <div class="device-stat"><div class="device-stat-icon" style="background:rgba(249,115,22,0.15); color:#f97316;"><i class="fas fa-exclamation-triangle"></i></div><div class="device-stat-info"><h4>Warning</h4><div class="val" style="color:#f97316;">18</div></div></div>
+          <div class="device-stat"><div class="device-stat-icon" style="background:rgba(239,68,68,0.15); color:#ef4444;"><i class="fas fa-battery-quarter"></i></div><div class="device-stat-info"><h4>Low Battery</h4><div class="val" style="color:#ef4444;">12</div></div></div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Device ID</th><th>Animal</th><th>Type</th><th>Battery</th><th>Signal</th><th>Status</th><th>Last Seen</th><th>Action</th></tr></thead>
+            <tbody id="devicesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== USERS & ROLES ===== -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <div><h2>User & Role Management</h2><p>Admins, field officers, researchers</p></div>
+          <div class="page-header-actions"><button class="btn-primary" id="addUserBtn"><i class="fas fa-plus"></i> Add User</button></div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <div class="card-header"><div class="card-title"><i class="fas fa-shield-alt"></i> Role Permissions</div></div>
+          <div style="overflow-x:auto;">
+            <table class="perm-matrix">
+              <thead><tr><th>Permission</th><th>Admin</th><th>Field Officer</th><th>Researcher</th><th>Veterinarian</th></tr></thead>
+              <tbody>
+                <tr><td>View Animals</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-check perm-check"></i></td></tr>
+                <tr><td>Edit Health Records</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-check perm-check"></i></td></tr>
+                <tr><td>Manage Devices</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-times perm-x"></i></td></tr>
+                <tr><td>Access API</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td></tr>
+                <tr><td>Export Reports</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-check perm-check"></i></td></tr>
+                <tr><td>Manage Users</td><td><i class="fas fa-check perm-check"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-times perm-x"></i></td><td><i class="fas fa-times perm-x"></i></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== API & INTEGRATIONS ===== -->
+      <div class="page" id="page-integrations">
+        <div class="page-header">
+          <div><h2>API & Integrations</h2><p>Full API keys, endpoints, webhooks, events</p></div>
+        </div>
+        <div class="api-grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-key"></i> API Keys</div><button class="filter-btn active" id="genKeyBtn"><i class="fas fa-plus"></i> Generate</button></div>
+            <div id="apiKeysList"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-bolt"></i> Quick Endpoints</div></div>
+            <div class="endpoint-row"><span class="method-badge get">GET</span><span class="endpoint-path">/api/animals</span></div>
+            <div class="endpoint-row"><span class="method-badge get">GET</span><span class="endpoint-path">/api/analytics</span></div>
+            <div class="endpoint-row"><span class="method-badge get">GET</span><span class="endpoint-path">/api/alerts</span></div>
+            <div class="endpoint-row"><span class="method-badge post">POST</span><span class="endpoint-path">/api/incidents</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-area"></i> API Usage (Last 30 Days)</div></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:1rem;">
+            <div><div class="form-label-sm">Total Requests</div><div style="font-size:1.4rem; font-weight:800; color:#f0f9ff;">12,482</div></div>
+            <div><div class="form-label-sm">Avg Response</div><div style="font-size:1.4rem; font-weight:800; color:#4ade80;">142ms</div></div>
+            <div><div class="form-label-sm">Uptime</div><div style="font-size:1.4rem; font-weight:800; color:#4ade80;">99.8%</div></div>
+          </div>
+          <div style="height:140px;"><canvas id="apiUsageChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-bell"></i> Recent Webhook Events</div></div>
+          <div id="webhookEvents"></div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS ===== -->
+      <div class="page" id="page-settings">
+        <div class="page-header"><div><h2>Settings</h2><p>Configure simulation and system preferences</p></div></div>
+        <div class="settings-card">
+          <div class="settings-row"><span>Simulation Status</span><button class="toggle-btn on" id="toggleSim">ON</button></div>
+          <div class="settings-row"><span>Sensor Interval</span><select class="settings-select" id="sensorInterval"><option>5 seconds</option><option selected>10 seconds</option><option>20 seconds</option><option>30 seconds</option><option>60 seconds</option></select></div>
+          <div class="settings-row"><span>Animal Movement</span><button class="toggle-btn on settings-toggle">ON</button></div>
+          <div class="settings-row"><span>Health Simulation</span><button class="toggle-btn on settings-toggle">ON</button></div>
+          <div class="settings-row"><span>Alerts</span><button class="toggle-btn on settings-toggle">ON</button></div>
+          <div class="settings-row"><span>Movement Speed</span><select class="settings-select"><option>Slow</option><option selected>Normal</option><option>Fast</option></select></div>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button class="btn-secondary" id="resetSimBtn" style="border-color:#ef4444; color:#ef4444;"><i class="fas fa-redo"></i> Reset Simulation</button>
+          <button class="btn-secondary" id="exportAllBtn"><i class="fas fa-database"></i> Export All Data</button>
+        </div>
+      </div>
+
+      <!-- ===== RESEARCHER — API ===== -->
+      <div class="page" id="page-api">
+        <div class="page-header"><div><h2>Researcher API</h2><p>Programmatic access to wildlife data</p></div></div>
+
+        <div class="research-banner">
+          <div class="research-banner-icon"><i class="fas fa-flask"></i></div>
+          <div style="flex:1; min-width:200px;">
+            <h3>Researcher Access Active</h3>
+            <p>You have read-only access to approved datasets. All requests are logged.</p>
+          </div>
+        </div>
+
+        <div class="api-key-box">
+          <code id="apiKey">sk_live_wld_7f8e9d2c4b6a1e3f5d7c9b0a2e4f6d8c</code>
+          <button class="filter-btn active" id="copyKeyBtn"><i class="fas fa-copy"></i> Copy</button>
+          <button class="filter-btn" id="regenerateKeyBtn"><i class="fas fa-sync"></i> Regenerate</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-card-label">Requests Today</div><div class="stat-card-value">1,847</div><div class="stat-card-sub">+12% vs yesterday</div></div>
+          <div class="stat-card"><div class="stat-card-label">Rate Limit</div><div class="stat-card-value">1,000<small style="font-size:0.9rem;">/hr</small></div><div class="stat-card-sub">current tier</div></div>
+          <div class="stat-card"><div class="stat-card-label">Data Points</div><div class="stat-card-value">2.4<small style="font-size:0.9rem;">M</small></div><div class="stat-card-sub">available</div></div>
+          <div class="stat-card"><div class="stat-card-label">Last Export</div><div class="stat-card-value" style="font-size:1.2rem; padding-top:0.4rem;">2h ago</div><div class="stat-card-sub">CSV download</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-download"></i> Download Historical Data</div></div>
+          <div class="download-grid">
+            <div class="download-card" data-download="movement"><div class="download-card-icon"><i class="fas fa-route"></i></div><div class="download-card-info"><h4>Movement Data</h4><p>GPS trail · 30 days · CSV</p></div></div>
+            <div class="download-card" data-download="health"><div class="download-card-icon"><i class="fas fa-heartbeat"></i></div><div class="download-card-info"><h4>Health Records</h4><p>Vitals · 90 days · CSV</p></div></div>
+            <div class="download-card" data-download="activity"><div class="download-card-icon"><i class="fas fa-chart-line"></i></div><div class="download-card-info"><h4>Activity Log</h4><p>Behavior · 30 days · CSV</p></div></div>
+            <div class="download-card" data-download="full"><div class="download-card-icon"><i class="fas fa-database"></i></div><div class="download-card-info"><h4>Complete Dataset</h4><p>All records · CSV</p></div></div>
+            <div class="download-card" data-download="analytics"><div class="download-card-icon"><i class="fas fa-chart-bar"></i></div><div class="download-card-info"><h4>Analytics Report</h4><p>Summary · CSV</p></div></div>
+            <div class="download-card" data-download="json"><div class="download-card-icon"><i class="fas fa-code"></i></div><div class="download-card-info"><h4>JSON Export</h4><p>Structured format</p></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-flask"></i> API Data Explorer</div></div>
+          <div class="explorer-layout">
+            <div class="query-panel">
+              <div><label class="form-label-sm">Endpoint</label>
+                <select class="form-input-sm" id="explorerEndpoint">
+                  <option value="/api/animals">/api/animals</option>
+                  <option value="/api/analytics">/api/analytics</option>
+                  <option value="/api/alerts">/api/alerts</option>
+                  <option value="/api/animals/COW-001">/api/animals/COW-001</option>
+                </select>
+              </div>
+              <div><label class="form-label-sm">Query Params</label>
+                <input type="text" class="form-input-sm" id="explorerParams" placeholder="zone=zone1&limit=10">
+              </div>
+              <div><label class="form-label-sm">Response Format</label>
+                <select class="form-input-sm" id="explorerFormat">
+                  <option value="json">JSON</option>
+                  <option value="csv">CSV</option>
+                </select>
+              </div>
+              <button class="btn-primary" id="runQueryBtn" style="margin-top:0.3rem;"><i class="fas fa-play"></i> Run Query</button>
+            </div>
+            <div class="response-panel">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <span style="font-size:0.7rem; color:#94a3b8;">Response</span>
+                <span style="font-size:0.68rem; color:#4ade80;" id="explorerStatus">200 OK · 142ms</span>
+              </div>
+              <pre id="explorerOutput">{
+  "hint": "Click 'Run Query' to test the selected endpoint"
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-code"></i> Available Endpoints</div></div>
+          <div class="endpoint-row" data-endpoint="/api/animals"><span class="method-badge get">GET</span><span class="endpoint-path">/api/animals</span><span class="endpoint-desc">List all monitored animals</span></div>
+          <div class="endpoint-row" data-endpoint="/api/animals/:id"><span class="method-badge get">GET</span><span class="endpoint-path">/api/animals/:id</span><span class="endpoint-desc">Detailed animal information</span></div>
+          <div class="endpoint-row" data-endpoint="/api/animals/:id/history"><span class="method-badge get">GET</span><span class="endpoint-path">/api/animals/:id/history</span><span class="endpoint-desc">Movement & activity history</span></div>
+          <div class="endpoint-row" data-endpoint="/api/observations"><span class="method-badge get">GET</span><span class="endpoint-path">/api/observations</span><span class="endpoint-desc">Field observations log</span></div>
+          <div class="endpoint-row" data-endpoint="/api/analytics"><span class="method-badge get">GET</span><span class="endpoint-path">/api/analytics</span><span class="endpoint-desc">Aggregated analytics data</span></div>
+          <div class="endpoint-row" data-endpoint="/api/alerts"><span class="method-badge get">GET</span><span class="endpoint-path">/api/alerts</span><span class="endpoint-desc">Active & historical alerts</span></div>
+        </div>
+      </div>
+
+      <!-- ===== FIELD TASKS ===== -->
+      <div class="page" id="page-tasks">
+        <div class="page-header"><div><h2>Field Tasks</h2><p>Today's assignments and urgent alerts</p></div></div>
+        <div class="field-alert-card">
+          <div class="field-alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="field-alert-info"><h4>Urgent: TIGER-001 showing abnormal behavior</h4><p>Zone 5 — Tiger Habitat · Detected 24 minutes ago</p></div>
+          <button class="field-alert-action" id="respondAlertBtn">Respond</button>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-card-label">Today's Tasks</div><div class="stat-card-value" id="taskTotal">8</div><div class="stat-card-sub"><span id="taskDone">3</span> completed</div></div>
+          <div class="stat-card"><div class="stat-card-label">Pending</div><div class="stat-card-value" style="color:#f97316;" id="taskPending">5</div><div class="stat-card-sub">need attention</div></div>
+          <div class="stat-card"><div class="stat-card-label">Active Alerts</div><div class="stat-card-value" style="color:#ef4444;">3</div><div class="stat-card-sub">high priority</div></div>
+          <div class="stat-card"><div class="stat-card-label">Distance</div><div class="stat-card-value">12.4<small style="font-size:0.9rem;">km</small></div><div class="stat-card-sub">today</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-list-check"></i> Task List</div><button class="filter-btn active" id="addTaskBtn"><i class="fas fa-plus"></i> Add Task</button></div>
+          <div id="taskListContainer"></div>
+        </div>
+      </div>
+
+      <!-- ===== PATROL ===== -->
+      <div class="page" id="page-patrol">
+        <div class="page-header">
+          <div><h2>Patrol Route</h2><p>Your assigned patrol for today</p></div>
+          <div class="page-header-actions">
+            <button class="filter-btn" id="editPatrolBtn"><i class="fas fa-edit"></i> Edit Route</button>
+            <button class="btn-primary" id="startPatrolBtn"><i class="fas fa-play"></i> Start Patrol</button>
+          </div>
+        </div>
+        <div class="map-container" style="flex:1; min-height:400px;">
+          <div id="mapPatrol"></div>
+          <div class="draw-banner" id="patrolDrawBanner"><i class="fas fa-route"></i><span>Click points to add waypoints. Double-click to finish.</span><button id="cancelPatrolDraw">Cancel</button></div>
+          <div class="map-controls">
+            <button class="map-btn" id="zoomInPatrol"><i class="fas fa-plus"></i></button>
+            <button class="map-btn" id="zoomOutPatrol"><i class="fas fa-minus"></i></button>
+            <button class="map-btn" id="resetPatrolView"><i class="fas fa-crosshairs"></i></button>
+          </div>
+          <div class="map-legend">
+            <div class="legend-title">Route Markers</div>
+            <div class="map-legend-item"><span class="legend-dot healthy"></span> Start Point</div>
+            <div class="map-legend-item"><span class="legend-dot warning"></span> Checkpoints</div>
+            <div class="map-legend-item"><span class="legend-dot critical"></span> End Point</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="addAnimalModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-plus" style="color:#4ade80; margin-right:0.5rem;"></i>Add New Animal</h3><button class="modal-close" data-close="addAnimalModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <form id="addAnimalForm">
+        <div class="form-group"><label class="form-label">Species</label><select class="form-select" id="newSpecies"><option value="Cow">Cow</option><option value="Deer">Deer</option><option value="Bear">Bear</option><option value="Wolf">Wolf</option><option value="Tiger">Tiger</option><option value="Elephant">Elephant</option></select></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Name</label><input type="text" class="form-input" id="newName" placeholder="e.g., Bella"></div>
+          <div class="form-group"><label class="form-label">Breed</label><input type="text" class="form-input" id="newBreed" placeholder="e.g., Holstein"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Gender</label><select class="form-select" id="newGender"><option>Female</option><option>Male</option></select></div>
+          <div class="form-group"><label class="form-label">Age</label><input type="number" class="form-input" id="newAge" value="3" min="1" max="50"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Weight (kg)</label><input type="number" class="form-input" id="newWeight" value="400" min="1"></div>
+          <div class="form-group"><label class="form-label">Zone</label><select class="form-select" id="newZone"></select></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="addAnimalModal">Cancel</button><button class="btn-primary" id="submitAddAnimal"><i class="fas fa-check"></i> Add Animal</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="incidentModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-exclamation-triangle" style="color:#f97316; margin-right:0.5rem;"></i>Report Incident</h3><button class="modal-close" data-close="incidentModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <form id="incidentForm">
+        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="incType"><option>Injured Animal</option><option>Animal Missing</option><option>Abnormal Behavior</option><option>Human-Wildlife Conflict</option><option>Sensor Failure</option><option>Environmental Hazard</option></select></div>
+        <div class="form-group"><label class="form-label">Related Animal</label><select class="form-select" id="incAnimal"><option value="">— None —</option></select></div>
+        <div class="form-group"><label class="form-label">Zone</label><select class="form-select" id="incZone"></select></div>
+        <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="incDesc" placeholder="Describe the incident..."></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="incidentModal">Cancel</button><button class="btn-primary" id="submitIncident" style="background:linear-gradient(135deg,#f97316,#ef4444); color:white;"><i class="fas fa-paper-plane"></i> Submit</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-plus" style="color:#4ade80; margin-right:0.5rem;"></i>Add Field Task</h3><button class="modal-close" data-close="taskModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <form id="taskForm">
+        <div class="form-group"><label class="form-label">Task Title</label><input type="text" class="form-input" id="taskTitle" placeholder="e.g., Check water station"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Zone</label><select class="form-select" id="taskZone"><option>Zone 1</option><option>Zone 2</option><option>Zone 3</option><option>Zone 4</option><option>Zone 5</option><option>Zone 6</option></select></div>
+          <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="taskPriority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Due Time</label><input type="text" class="form-input" id="taskDue" value="5:00 PM"></div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="taskModal">Cancel</button><button class="btn-primary" id="submitTask"><i class="fas fa-check"></i> Add Task</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="incidentDetailModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="incDetailTitle">Incident Detail</h3><button class="modal-close" data-close="incidentDetailModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body" id="incDetailBody"></div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="incidentDetailModal">Close</button><button class="btn-primary" id="resolveIncidentBtn"><i class="fas fa-check"></i> Resolve</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="zoneModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-draw-polygon" style="color:#4ade80; margin-right:0.5rem;"></i>Add New Zone</h3><button class="modal-close" data-close="zoneModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Zone Name</label><input type="text" class="form-input" id="zoneName" placeholder="e.g., Wetlands"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">North Lat</label><input type="number" step="0.0001" class="form-input" id="zoneNorth" value="33.7120"></div>
+        <div class="form-group"><label class="form-label">South Lat</label><input type="number" step="0.0001" class="form-input" id="zoneSouth" value="33.7000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">East Lng</label><input type="number" step="0.0001" class="form-input" id="zoneEast" value="73.0500"></div>
+        <div class="form-group"><label class="form-label">West Lng</label><input type="number" step="0.0001" class="form-input" id="zoneWest" value="73.0300"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Color</label>
+        <div style="display:flex; gap:0.5rem;">
+          <input type="color" id="zoneColor" value="#4a7a4a" style="width:60px; height:40px; border-radius:8px; background:#141f26; border:1px solid #1f333d; cursor:pointer;">
+          <input type="text" class="form-input" id="zoneColorHex" value="#4a7a4a" readonly>
+        </div>
+      </div>
+      <div class="form-help"><i class="fas fa-info-circle"></i> Or draw on the map for precise boundaries.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="zoneModal">Cancel</button>
+      <button class="btn-secondary" id="drawOnMapBtn" style="border-color:#4ade80; color:#4ade80;"><i class="fas fa-draw-polygon"></i> Draw</button>
+      <button class="btn-primary" id="submitZone"><i class="fas fa-check"></i> Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deviceModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-microchip" style="color:#4ade80; margin-right:0.5rem;"></i>Add Device</h3><button class="modal-close" data-close="deviceModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <form id="deviceForm">
+        <div class="form-group"><label class="form-label">Device ID</label><input type="text" class="form-input" id="devId" placeholder="e.g., GPS-C011"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="devType"><option>GPS Collar</option><option>Health Sensor</option><option>Camera Trap</option><option>Environmental</option></select></div>
+          <div class="form-group"><label class="form-label">Animal</label><select class="form-select" id="devAnimal"></select></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="deviceModal">Cancel</button><button class="btn-primary" id="submitDevice"><i class="fas fa-check"></i> Add Device</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-user-plus" style="color:#4ade80; margin-right:0.5rem;"></i>Add User</h3><button class="modal-close" data-close="userModal"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <form id="userForm">
+        <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="newUserName" placeholder="e.g., Jane Doe"></div>
+        <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="newUserEmail" placeholder="jane@wildlifehaven.org"></div>
+        <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="newUserRole"><option>Administrator</option><option>Field Officer</option><option>Researcher</option><option>Veterinarian</option></select></div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="userModal">Cancel</button><button class="btn-primary" id="submitUser"><i class="fas fa-check"></i> Add User</button></div>
+  </div>
+</div>
+
+<div class="map-fullscreen-modal" id="fullscreenModal">
+  <div class="map-fullscreen-header">
+    <h3><i class="fas fa-map"></i> Fullscreen Map</h3>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <button class="filter-btn" id="fitAllFullscreen"><i class="fas fa-crosshairs"></i> Fit All</button>
+      <button class="filter-btn" id="closeFullscreen"><i class="fas fa-times"></i> Exit</button>
+    </div>
+  </div>
+  <div class="map-fullscreen-body">
+    <div id="mapFullscreen"></div>
+    <div class="animal-markers" id="animalMarkersFullscreen"></div>
+    <div class="map-controls">
+      <button class="map-btn" id="zoomInFS"><i class="fas fa-plus"></i></button>
+      <button class="map-btn" id="zoomOutFS"><i class="fas fa-minus"></i></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  // ============================================================
+  //  WILDLIFE HAVEN — Complete working prototype
+  // ============================================================
+
+  const CENTER = [33.6844, 73.0479];
+  const ZONES = [
+    { id: 'zone1', name: 'North Field',      color: '#4a7a4a', center: [33.7060, 73.0400], bounds: [[33.7000, 73.0300], [33.7120, 73.0500]] },
+    { id: 'zone2', name: 'Forest',           color: '#3a6a3a', center: [33.7000, 73.0700], bounds: [[33.6940, 73.0600], [33.7060, 73.0800]] },
+    { id: 'zone3', name: 'Lake Area',        color: '#3a6a8a', center: [33.6800, 73.0300], bounds: [[33.6740, 73.0200], [33.6860, 73.0400]] },
+    { id: 'zone4', name: 'Grassland',        color: '#5a8a3a', center: [33.6750, 73.0650], bounds: [[33.6690, 73.0550], [33.6810, 73.0750]] },
+    { id: 'zone5', name: 'Tiger Habitat',    color: '#8a5a3a', center: [33.7100, 73.0900], bounds: [[33.7040, 73.0800], [33.7160, 73.1000]] },
+    { id: 'zone6', name: 'Elephant Habitat', color: '#7a7a4a', center: [33.6650, 73.0800], bounds: [[33.6590, 73.0700], [33.6710, 73.0900]] },
+  ];
+
+  const INITIAL_ANIMALS = [
+    { id: 'COW-001',   species: 'Cow',   name: 'Bella',   breed: 'Holstein Friesian', gender: 'Female', age: 5, weight: 480, zoneId: 'zone2', lat: 33.7000, lng: 73.0700, behavior: 'GRAZING', health: 'HEALTHY', temp: 38.6, hr: 72, speed: 1.4, targetLat: 33.7010, targetLng: 73.0710 },
+    { id: 'COW-002',   species: 'Cow',   name: 'Daisy',   breed: 'Jersey',            gender: 'Female', age: 4, weight: 450, zoneId: 'zone1', lat: 33.7050, lng: 73.0400, behavior: 'RESTING', health: 'HEALTHY', temp: 38.2, hr: 68, speed: 0.6, targetLat: 33.7055, targetLng: 73.0405 },
+    { id: 'DEER-001',  species: 'Deer',  name: 'Fawn',    breed: 'White-tailed',      gender: 'Female', age: 3, weight: 68,  zoneId: 'zone1', lat: 33.7070, lng: 73.0450, behavior: 'WALKING', health: 'HEALTHY', temp: 38.7, hr: 84, speed: 2.1, targetLat: 33.7080, targetLng: 73.0460 },
+    { id: 'BEAR-001',  species: 'Bear',  name: 'Grizzly', breed: 'Brown Bear',        gender: 'Male',   age: 7, weight: 320, zoneId: 'zone3', lat: 33.6800, lng: 73.0300, behavior: 'RESTING', health: 'HEALTHY', temp: 37.9, hr: 58, speed: 0.6, targetLat: 33.6805, targetLng: 73.0305 },
+    { id: 'WOLF-001',  species: 'Wolf',  name: 'Luna',    breed: 'Gray Wolf',         gender: 'Female', age: 4, weight: 42,  zoneId: 'zone4', lat: 33.6750, lng: 73.0650, behavior: 'WALKING', health: 'HEALTHY', temp: 38.5, hr: 92, speed: 3.2, targetLat: 33.6760, targetLng: 73.0660 },
+    { id: 'TIGER-001', species: 'Tiger', name: 'Shere',   breed: 'Bengal',            gender: 'Male',   age: 6, weight: 220, zoneId: 'zone5', lat: 33.7100, lng: 73.0900, behavior: 'WALKING', health: 'HEALTHY', temp: 38.9, hr: 78, speed: 2.8, targetLat: 33.7110, targetLng: 73.0910 },
+  ];
+
+  let animals = JSON.parse(JSON.stringify(INITIAL_ANIMALS));
+
+  const SPRITES = {
+    Cow:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Cow/3D/cow_3d.png',
+    Deer:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Deer/3D/deer_3d.png',
+    Bear:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Bear/3D/bear_3d.png',
+    Wolf:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Wolf/3D/wolf_3d.png',
+    Tiger:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Tiger%20Face/3D/tiger_face_3d.png',
+    Elephant:'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Elephant/3D/elephant_3d.png',
+  };
+  const SPRITES_FALLBACK = {
+    Cow:'https://openmoji.org/data/color/svg/1F404.svg', Deer:'https://openmoji.org/data/color/svg/1F98C.svg',
+    Bear:'https://openmoji.org/data/color/svg/1F43B.svg', Wolf:'https://openmoji.org/data/color/svg/1F43A.svg',
+    Tiger:'https://openmoji.org/data/color/svg/1F42F.svg', Elephant:'https://openmoji.org/data/color/svg/1F418.svg',
+  };
+  const PHOTOS = {
+    Cow:'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=500&h=400&fit=crop&crop=entropy',
+    Deer:'https://images.unsplash.com/photo-1484406566174-9da000fda645?w=500&h=400&fit=crop&crop=entropy',
+    Bear:'https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=500&h=400&fit=crop&crop=entropy',
+    Wolf:'https://images.unsplash.com/photo-1564466809058-bf4114d55352?w=500&h=400&fit=crop&crop=entropy',
+    Tiger:'https://images.unsplash.com/photo-1615963244664-5b845b2025ee?w=500&h=400&fit=crop&crop=entropy',
+    Elephant:'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=500&h=400&fit=crop&crop=entropy',
+  };
+
+  const ROLES = {
+    admin: {
+      name: 'Admin', fullName: 'Admin User', email: 'admin@wildlifehaven.org', initials: 'AD', avatarClass: 'admin',
+      pages: [
+        { id: 'dashboard',    icon: 'fa-home', label: 'Dashboard' },
+        { id: 'animals',      icon: 'fa-paw', label: 'Animals' },
+        { id: 'map',          icon: 'fa-map', label: 'Map & Habitat' },
+        { id: 'incidents',    icon: 'fa-exclamation-triangle', label: 'Incidents & Alerts' },
+        { id: 'reports',      icon: 'fa-file-alt', label: 'Reports' },
+        { id: 'devices',      icon: 'fa-microchip', label: 'Devices & Sensors' },
+        { id: 'users',        icon: 'fa-users', label: 'Users & Roles' },
+        { id: 'integrations', icon: 'fa-plug', label: 'API & Integrations' },
+        { id: 'settings',     icon: 'fa-cog', label: 'Settings' },
+      ],
+      defaultPage: 'dashboard', showSpecies: true,
+    },
+    researcher: {
+      name: 'Researcher', fullName: 'Dr. Sarah Chen', email: 's.chen@research.org', initials: 'SC', avatarClass: 'researcher',
+      pages: [
+        { id: 'api',      icon: 'fa-flask', label: 'Researcher API' },
+        { id: 'animals',  icon: 'fa-paw', label: 'Dataset Explorer' },
+        { id: 'map',      icon: 'fa-map', label: 'Habitat Map' },
+        { id: 'reports',  icon: 'fa-chart-bar', label: 'Analytics' },
+      ],
+      defaultPage: 'api', showSpecies: false,
+    },
+    fieldofficer: {
+      name: 'Field Officer', fullName: 'Ranger Ahmed', email: 'a.ranger@wildlifehaven.org', initials: 'RA', avatarClass: 'fieldofficer',
+      pages: [
+        { id: 'tasks',     icon: 'fa-list-check', label: 'Field Tasks' },
+        { id: 'patrol',    icon: 'fa-route', label: 'Patrol Route' },
+        { id: 'map',       icon: 'fa-map', label: 'Live Map' },
+        { id: 'incidents', icon: 'fa-exclamation-triangle', label: 'Incidents' },
+      ],
+      defaultPage: 'tasks', showSpecies: false,
+    },
+  };
+
+  let currentRole = 'admin';
+  let selectedAnimalId = 'COW-001';
+  let simulationRunning = true;
+  let map, mapFull, mapPatrol, mapFullscreen, historyMiniMap;
+  let drawMode = false;
+  let drawnPoints = [];
+  let drawnPolyline = null;
+  let patrolPoints = [];
+  let patrolPolyline = null;
+  let lastTick = performance.now();
+  let currentIncidentId = null;
+  let routePlaybackInterval = null;
+  let playbackMarker = null;
+  let animalTrails = {};
+
+  animals.forEach(a => {
+    animalTrails[a.id] = [];
+    for (let i = 0; i < 30; i++) {
+      animalTrails[a.id].push({ lat: a.lat + (Math.random() - 0.5) * 0.004, lng: a.lng + (Math.random() - 0.5) * 0.004, time: Date.now() - (30 - i) * 60000 });
+    }
+  });
+
+  let incidents = [
+    { id: 'INC-012', type: 'Abnormal Behavior', animal: 'TIGER-001', zone: 'Tiger Habitat', time: '2h ago', status: 'Open', description: 'Tiger pacing in circles near eastern boundary' },
+    { id: 'INC-011', type: 'Sensor Failure', animal: 'WOLF-001', zone: 'Grassland', time: '5h ago', status: 'Open', description: 'GPS collar not transmitting' },
+    { id: 'INC-010', type: 'Injured Animal', animal: 'DEER-001', zone: 'Forest', time: '1d ago', status: 'Resolved', description: 'Minor leg injury, treated by vet' },
+    { id: 'INC-009', type: 'Human-Wildlife Conflict', animal: 'BEAR-001', zone: 'Lake Area', time: '2d ago', status: 'Resolved', description: 'Bear approached nearby village' },
+    { id: 'INC-008', type: 'Environmental Hazard', animal: '—', zone: 'North Field', time: '3d ago', status: 'Resolved', description: 'Fallen tree blocking path' },
+  ];
+
+  let tasks = [
+    { id: 1, title: 'Check water station at Zone 3', zone: 'Zone 3', priority: 'low', meta: 'Completed at 08:30 AM', done: true },
+    { id: 2, title: 'Vaccination checkup — COW-001', zone: 'Zone 2', priority: 'low', meta: 'Completed at 09:15 AM', done: true },
+    { id: 3, title: 'Investigate TIGER-001 abnormal behavior', zone: 'Zone 5', priority: 'high', meta: 'Zone 5 · Due 12:00 PM', done: false },
+    { id: 4, title: 'Replace faulty sensor on WOLF-001', zone: 'Zone 4', priority: 'high', meta: 'Zone 4 · Due 2:00 PM', done: false },
+    { id: 5, title: 'Feed supplement for elephants', zone: 'Zone 6', priority: 'medium', meta: 'Zone 6 · Due 3:30 PM', done: false },
+    { id: 6, title: 'Boundary fence inspection — North side', zone: 'Zone 1', priority: 'medium', meta: 'Zones 1-2 · Due 4:00 PM', done: false },
+    { id: 7, title: 'Wildlife count log — evening shift', zone: 'All', priority: 'low', meta: 'All zones · Due 6:00 PM', done: false },
+  ];
+
+  let devices = [
+    { id: 'GPS-C001', animal: 'COW-001', type: 'GPS Collar', battery: 85, signal: 'Good', status: 'Online', lastSeen: '10:42 AM' },
+    { id: 'GPS-C002', animal: 'COW-002', type: 'GPS Collar', battery: 62, signal: 'Good', status: 'Online', lastSeen: '10:41 AM' },
+    { id: 'GPS-D001', animal: 'DEER-001', type: 'GPS Collar', battery: 78, signal: 'Good', status: 'Online', lastSeen: '10:42 AM' },
+    { id: 'GPS-W001', animal: 'WOLF-001', type: 'GPS Collar', battery: 41, signal: 'Weak', status: 'Warning', lastSeen: '09:38 AM' },
+    { id: 'CAM-Z001', animal: '—', type: 'Camera Trap', battery: 92, signal: 'Good', status: 'Online', lastSeen: '10:42 AM' },
+    { id: 'HT-C001', animal: 'COW-001', type: 'Health Sensor', battery: 79, signal: 'Good', status: 'Online', lastSeen: '10:41 AM' },
+    { id: 'ENV-A001', animal: '—', type: 'Environmental', battery: 100, signal: 'Good', status: 'Online', lastSeen: '10:42 AM' },
+    { id: 'GPS-T001', animal: 'TIGER-001', type: 'GPS Collar', battery: 15, signal: 'Good', status: 'Low Battery', lastSeen: '10:15 AM' },
+  ];
+
+  let users = [
+    { id: 1, name: 'Admin User', email: 'admin@wildlifehaven.org', role: 'Administrator', status: 'Active', lastLogin: '10:42 AM' },
+    { id: 2, name: 'Ranger Ahmed', email: 'a.ranger@wildlifehaven.org', role: 'Field Officer', status: 'Active', lastLogin: '10:41 AM' },
+    { id: 3, name: 'Dr. Sarah Chen', email: 's.chen@research.org', role: 'Researcher', status: 'Active', lastLogin: '09:38 AM' },
+    { id: 4, name: 'Dr. Ali Raza', email: 'a.raza@wildlifehaven.org', role: 'Veterinarian', status: 'Active', lastLogin: '07:01 AM' },
+    { id: 5, name: 'Zainab Noor', email: 'z.noor@wildlifehaven.org', role: 'Researcher', status: 'Inactive', lastLogin: 'Yesterday' },
+  ];
+
+  // ---------- MAPS ----------
+  function initLeafletMap(elementId, options = {}) {
+    const el = document.getElementById(elementId);
+    if (!el) return null;
+    const m = L.map(elementId, { center: CENTER, zoom: options.zoom || 14, zoomControl: false, attributionControl: false, preferCanvas: true });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, tileSize: 256 }).addTo(m);
+    L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.35 }).addTo(m);
+    return m;
+  }
+
+  function addZoneRectangles(m) {
+    if (!m) return;
+    ZONES.forEach(z => {
+      L.rectangle(z.bounds, { color: z.color, weight: 2, opacity: 0.85, fillColor: z.color, fillOpacity: 0.08, interactive: false }).addTo(m);
+      L.marker(z.center, {
+        icon: L.divIcon({
+          className: 'zone-label',
+          html: `<div style="background:rgba(11,17,21,0.85);color:#e0e7ee;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid ${z.color};backdrop-filter:blur(8px);">${z.name}</div>`,
+          iconSize: [100, 20], iconAnchor: [50, 10],
+        }),
+        interactive: false,
+      }).addTo(m);
+    });
+  }
+
+  function fitAllAnimals(m) {
+    if (!m || animals.length === 0) return;
+    const bounds = L.latLngBounds(animals.map(a => [a.lat, a.lng]));
+    m.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+  }
+
+  // ---------- MARKERS ----------
+  function renderAnimalMarkers(containerId, m) {
+    const container = document.getElementById(containerId);
+    if (!container || !m) return;
+    container.innerHTML = '';
+    animals.forEach(a => {
+      const marker = document.createElement('div');
+      marker.className = 'animal-marker' + (a.id === selectedAnimalId ? ' selected' : '');
+      marker.id = containerId + '-' + a.id;
+      marker.dataset.animalId = a.id;
+      const healthClass = a.health.toLowerCase();
+      const sprite = SPRITES[a.species] || SPRITES.Cow;
+      const zone = ZONES.find(z => z.id === a.zoneId);
+      marker.innerHTML = `
+        <div class="animal-tooltip">
+          <div class="tooltip-header"><span class="health-dot" style="background:${a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444'}"></span>${a.id} · ${a.name}</div>
+          <div class="tooltip-row"><span class="label">Species</span><span class="value">${a.species} · ${a.breed}</span></div>
+          <div class="tooltip-row"><span class="label">Zone</span><span class="value">${zone ? zone.name : '—'}</span></div>
+          <div class="tooltip-row"><span class="label">Health</span><span class="value" style="color:${a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444'}">${a.health}</span></div>
+          <div class="tooltip-row"><span class="label">Activity</span><span class="value">${a.behavior.replace('_',' ')}</span></div>
+          <div class="tooltip-row"><span class="label">Temp</span><span class="value">${a.temp.toFixed(1)}°C</span></div>
+          <div class="tooltip-row"><span class="label">Heart Rate</span><span class="value">${Math.round(a.hr)} bpm</span></div>
+          <div class="tooltip-hint">Click to view full details</div>
+        </div>
+        <div class="animal-label ${healthClass}"><span class="dot"></span>${a.id}</div>
+        <div class="animal-sprite-wrap"><img class="animal-sprite" src="${sprite}" alt="${a.species}" onerror="this.src='${SPRITES_FALLBACK[a.species]}'"></div>
+      `;
+      marker.addEventListener('click', (e) => { e.stopPropagation(); selectAnimal(a.id); });
+      container.appendChild(marker);
+    });
+    updateMarkerPositions(m, containerId);
+  }
+
+  function updateMarkerPositions(m, containerId) {
+    if (!m) return;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    animals.forEach(a => {
+      const el = document.getElementById(containerId + '-' + a.id);
+      if (!el) return;
+      const point = m.latLngToContainerPoint([a.lat, a.lng]);
+      el.style.left = point.x + 'px';
+      el.style.top = point.y + 'px';
+    });
+  }
+
+  function updateAllMarkers() {
+    if (map) updateMarkerPositions(map, 'animalMarkers');
+    if (mapFull) updateMarkerPositions(mapFull, 'animalMarkersFull');
+    if (mapFullscreen) updateMarkerPositions(mapFullscreen, 'animalMarkersFullscreen');
+  }
+
+  // ---------- SELECT ANIMAL ----------
+  function selectAnimal(id) {
+    selectedAnimalId = id;
+    const a = animals.find(an => an.id === id);
+    if (!a) return;
+    document.querySelectorAll('.animal-marker').forEach(mk => mk.classList.toggle('selected', mk.dataset.animalId === id));
+    const zone = ZONES.find(z => z.id === a.zoneId);
+    const healthLabel = a.health.charAt(0) + a.health.slice(1).toLowerCase();
+    document.getElementById('panelAnimalId').textContent = a.id;
+    document.getElementById('panelHealthBadge').textContent = healthLabel;
+    document.getElementById('panelHealthBadge').className = 'health-badge ' + a.health.toLowerCase();
+    document.getElementById('panelAnimalSub').textContent = `${a.breed} · ${a.gender} · ${a.age} years`;
+    document.getElementById('panelAnimalImg').src = PHOTOS[a.species] || PHOTOS.Cow;
+    document.getElementById('infoSpecies').textContent = a.species;
+    document.getElementById('infoBreed').textContent = a.breed;
+    document.getElementById('infoGender').textContent = a.gender;
+    document.getElementById('infoAge').textContent = a.age + ' years';
+    document.getElementById('infoWeight').textContent = a.weight + ' kg';
+    document.getElementById('infoZone').textContent = zone ? zone.name : '—';
+    document.getElementById('infoTagId').textContent = a.id;
+    document.getElementById('vitalHealth').textContent = healthLabel;
+    document.getElementById('vitalHealth').style.color = a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444';
+    document.getElementById('vitalActivity').textContent = a.behavior.replace('_', ' ').charAt(0) + a.behavior.replace('_', ' ').slice(1).toLowerCase();
+    document.getElementById('vitalTemp').innerHTML = `${a.temp.toFixed(1)}<small>°C</small>`;
+    document.getElementById('vitalHR').innerHTML = `${Math.round(a.hr)}<small>bpm</small>`;
+    const score = Math.max(0, Math.min(100, Math.round(100 - (a.temp > 39.5 ? (a.temp - 39.5) * 40 : 0) - (a.hr > 100 ? (a.hr - 100) * 0.3 : 0))));
+    document.getElementById('healthScore').innerHTML = `${score}<small>%</small>`;
+    document.getElementById('locZone').textContent = zone ? zone.name : '—';
+    document.getElementById('locCoords').textContent = `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}`;
+    const trailEl = document.getElementById('locTrail');
+    const now = new Date();
+    trailEl.innerHTML = Array(5).fill(0).map((_, i) => {
+      const t = new Date(now - i * 60000);
+      return `<div style="padding:0.4rem 0; border-bottom:1px solid #141f26; color:#94a3b8; display:flex; justify-content:space-between;"><span>${t.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}</span><span>${(a.lat + (Math.random()-0.5)*0.0005).toFixed(4)}, ${(a.lng + (Math.random()-0.5)*0.0005).toFixed(4)}</span></div>`;
+    }).join('');
+    if (document.getElementById('ptab-history').style.display !== 'none') renderAnimalHistory(id);
+  }
+
+  function renderAnimalHistory(animalId) {
+    const a = animals.find(an => an.id === animalId);
+    if (!a) return;
+    const trail = animalTrails[animalId] || [];
+    const distance = trail.reduce((sum, p, i) => i === 0 ? 0 : sum + Math.hypot(p.lat - trail[i-1].lat, p.lng - trail[i-1].lng) * 111000, 0);
+    document.getElementById('historyStats').innerHTML = `
+      <div class="vital-card"><div class="vital-label">Distance</div><div class="vital-value" style="font-size:0.9rem;">${distance.toFixed(2)}<small>km</small></div></div>
+      <div class="vital-card"><div class="vital-label">Points</div><div class="vital-value" style="font-size:0.9rem;">${trail.length}</div></div>
+    `;
+    setTimeout(() => {
+      if (historyMiniMap) historyMiniMap.remove();
+      historyMiniMap = L.map('historyMap', { zoomControl: false, attributionControl: false, preferCanvas: true });
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(historyMiniMap);
+      if (trail.length > 1) {
+        const path = trail.map(p => [p.lat, p.lng]);
+        L.polyline(path, { color: '#4ade80', weight: 2, opacity: 0.9, dashArray: '5, 5' }).addTo(historyMiniMap);
+        L.circleMarker(path[0], { radius: 5, fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(historyMiniMap);
+        L.circleMarker(path[path.length-1], { radius: 5, fillColor: '#4ade80', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(historyMiniMap);
+        historyMiniMap.fitBounds(L.latLngBounds(path), { padding: [10, 10] });
+      } else {
+        historyMiniMap.setView([a.lat, a.lng], 15);
+      }
+    }, 100);
+    const behaviors = ['GRAZING', 'WALKING', 'RESTING', 'DRINKING'];
+    document.getElementById('historyTimeline').innerHTML = Array(8).fill(0).map((_, i) => {
+      const t = new Date(Date.now() - i * 7200000);
+      return `<div class="history-item"><span class="time">${t.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}</span><span class="action">${behaviors[Math.floor(Math.random()*behaviors.length)]}</span></div>`;
+    }).join('');
+  }
+
+  // ---------- SIDEBAR ----------
+  function renderSidebarForRole() {
+    const role = ROLES[currentRole];
+    const mainNav = document.getElementById('navItemsMain');
+    mainNav.innerHTML = role.pages.map(p => `<div class="nav-item" data-page="${p.id}"><i class="fas ${p.icon}"></i> <span>${p.label}</span></div>`).join('');
+    mainNav.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        mainNav.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById('page-' + page);
+        if (target) target.classList.add('active');
+
+        if (page === 'dashboard' && map) setTimeout(() => { map.invalidateSize(); updateMarkerPositions(map, 'animalMarkers'); }, 100);
+        if (page === 'map') {
+          if (mapFull) setTimeout(() => { mapFull.invalidateSize(); fitAllAnimals(mapFull); updateMarkerPositions(mapFull, 'animalMarkersFull'); }, 100);
+          else setTimeout(initFullMap, 100);
+        }
+        if (page === 'patrol') {
+          if (mapPatrol) setTimeout(() => mapPatrol.invalidateSize(), 100);
+          else setTimeout(initPatrolMap, 100);
+        }
+        if (page === 'animals') {
+          const activeFilter = document.querySelector('.filter-btn[data-filter].active');
+          renderAnimalsTable(activeFilter ? activeFilter.dataset.filter : 'all');
+        }
+        if (page === 'incidents') renderIncidentsTable();
+        if (page === 'devices') renderDevicesTable();
+        if (page === 'users') renderUsersTable();
+        if (page === 'integrations') { renderApiKeys(); renderWebhookEvents(); if (!apiUsageChartInst) initApiUsageChart(); }
+      });
+    });
+    document.getElementById('speciesNavSection').style.display = role.showSpecies ? 'block' : 'none';
+    document.getElementById('navMainTitle').textContent = role.name === 'Researcher' ? 'Research Tools' : role.name === 'Field Officer' ? 'Field Tools' : 'Main';
+  }
+
+  function switchRole(roleId) {
+    currentRole = roleId;
+    const role = ROLES[roleId];
+    document.getElementById('topAvatar').textContent = role.initials;
+    document.getElementById('topAvatar').className = 'user-avatar ' + role.avatarClass;
+    document.getElementById('topUserName').textContent = role.name;
+    document.getElementById('topUserRole').textContent = role.fullName;
+    document.getElementById('ddAvatar').textContent = role.initials;
+    document.getElementById('ddAvatar').className = 'user-avatar ' + role.avatarClass;
+    document.getElementById('ddName').textContent = role.fullName;
+    document.getElementById('ddEmail').textContent = role.email;
+    document.querySelectorAll('.role-option').forEach(opt => opt.classList.toggle('active', opt.dataset.role === roleId));
+    renderSidebarForRole();
+    const defaultNavItem = document.querySelector(`.nav-item[data-page="${role.defaultPage}"]`);
+    if (defaultNavItem) defaultNavItem.click();
+    document.getElementById('profileDropdown').classList.remove('open');
+    document.getElementById('userProfileBtn').classList.remove('open');
+    showToast(`Switched to ${role.name} view`, 'success');
+  }
+
+  // ---------- TABLES ----------
+  function renderAnimalsTable(filter = 'all') {
+    const tbody = document.getElementById('animalsTableBody');
+    if (!tbody) return;
+    const filtered = filter === 'all' ? animals : animals.filter(a => a.species === filter);
+    const zoneNames = {};
+    ZONES.forEach(z => zoneNames[z.id] = z.name);
+    tbody.innerHTML = filtered.map(a => `
+      <tr data-id="${a.id}">
+        <td><strong style="color:#4ade80;">${a.id}</strong></td>
+        <td>${a.species}</td><td>${a.name}</td><td>${zoneNames[a.zoneId] || '—'}</td>
+        <td><span class="status-pill ${a.health.toLowerCase()}"><span class="dot"></span>${a.health}</span></td>
+        <td>${a.behavior.replace('_', ' ')}</td>
+        <td>${a.temp.toFixed(1)}°C</td><td>${Math.round(a.hr)} bpm</td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('tr').forEach(row => {
+      row.addEventListener('click', () => {
+        selectAnimal(row.dataset.id);
+        const dash = document.querySelector('.nav-item[data-page="dashboard"]');
+        if (dash) dash.click();
+      });
+    });
+  }
+
+  function renderIncidentsTable() {
+    const tbody = document.getElementById('incidentsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = incidents.map(inc => `
+      <tr>
+        <td><strong>${inc.id}</strong></td><td>${inc.type}</td><td>${inc.animal}</td><td>${inc.zone}</td><td>${inc.time}</td>
+        <td><span class="status-pill ${inc.status === 'Open' ? 'warning' : 'healthy'}"><span class="dot"></span>${inc.status}</span></td>
+        <td><button class="filter-btn" style="padding:0.3rem 0.6rem; font-size:0.7rem;" data-view="${inc.id}"><i class="fas fa-eye"></i> View</button></td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openIncidentDetail(btn.dataset.view); });
+    });
+  }
+
+  function renderDevicesTable() {
+    const tbody = document.getElementById('devicesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = devices.map(d => {
+      const batteryColor = d.battery > 60 ? '#4ade80' : d.battery > 30 ? '#f97316' : '#ef4444';
+      const statusClass = d.status === 'Online' ? 'healthy' : d.status === 'Warning' ? 'warning' : 'critical';
+      return `
+        <tr>
+          <td><strong>${d.id}</strong></td>
+          <td>${d.animal}</td>
+          <td>${d.type}</td>
+          <td>${d.battery}%<div class="battery-bar"><div class="battery-fill" style="width:${d.battery}%; background:${batteryColor};"></div></div></td>
+          <td>${d.signal}</td>
+          <td><span class="status-pill ${statusClass}"><span class="dot"></span>${d.status}</span></td>
+          <td>${d.lastSeen}</td>
+          <td><button class="filter-btn" style="padding:0.3rem 0.6rem; font-size:0.7rem;" data-device="${d.id}"><i class="fas fa-cog"></i></button></td>
+        </tr>
+      `;
+    }).join('');
+    tbody.querySelectorAll('[data-device]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showToast(`Device settings for ${btn.dataset.device}`, 'info');
+      });
+    });
+  }
+
+  function renderUsersTable() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td><span class="status-pill ${u.status === 'Active' ? 'healthy' : 'neutral'}"><span class="dot"></span>${u.status}</span></td>
+        <td>${u.lastLogin}</td>
+        <td>
+          <button class="filter-btn" style="padding:0.3rem 0.6rem; font-size:0.7rem; margin-right:0.3rem;" data-edit-user="${u.id}"><i class="fas fa-edit"></i></button>
+          <button class="filter-btn" style="padding:0.3rem 0.6rem; font-size:0.7rem; border-color:#ef4444; color:#ef4444;" data-del-user="${u.id}"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('[data-edit-user]').forEach(btn => {
+      btn.addEventListener('click', () => showToast(`Editing user...`, 'info'));
+    });
+    tbody.querySelectorAll('[data-del-user]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (confirm('Delete this user?')) {
+          users = users.filter(u => u.id !== parseInt(btn.dataset.delUser));
+          renderUsersTable();
+          showToast('User deleted', 'success');
+        }
+      });
+    });
+  }
+
+  function openIncidentDetail(incId) {
+    const inc = incidents.find(i => i.id === incId);
+    if (!inc) return;
+    currentIncidentId = incId;
+    document.getElementById('incDetailTitle').textContent = inc.id + ' — ' + inc.type;
+    document.getElementById('incDetailBody').innerHTML = `
+      <div style="margin-bottom:1rem;"><div style="font-size:0.72rem; color:#6b8598; text-transform:uppercase; font-weight:700; margin-bottom:0.3rem;">Status</div><span class="status-pill ${inc.status === 'Open' ? 'warning' : 'healthy'}"><span class="dot"></span>${inc.status}</span></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; margin-bottom:1rem;">
+        <div><div class="form-label-sm">Type</div><div style="color:#e0e7ee; font-weight:600;">${inc.type}</div></div>
+        <div><div class="form-label-sm">Zone</div><div style="color:#e0e7ee; font-weight:600;">${inc.zone}</div></div>
+        <div><div class="form-label-sm">Animal</div><div style="color:#e0e7ee; font-weight:600;">${inc.animal}</div></div>
+        <div><div class="form-label-sm">Reported</div><div style="color:#e0e7ee; font-weight:600;">${inc.time}</div></div>
+      </div>
+      <div class="form-label-sm">Description</div>
+      <div style="background:#141f26; border:1px solid #1f333d; border-radius:10px; padding:0.8rem; color:#e0e7ee; font-size:0.82rem; line-height:1.5;">${inc.description}</div>
+    `;
+    openModal('incidentDetailModal');
+  }
+
+  document.getElementById('resolveIncidentBtn').addEventListener('click', () => {
+    if (!currentIncidentId) return;
+    const inc = incidents.find(i => i.id === currentIncidentId);
+    if (inc) {
+      inc.status = 'Resolved';
+      inc.time = 'just now';
+      renderIncidentsTable();
+      closeModal('incidentDetailModal');
+      showToast(`${inc.id} resolved`, 'success');
+    }
+  });
+
+  // ---------- TASKS ----------
+  function renderTasks() {
+    const container = document.getElementById('taskListContainer');
+    if (!container) return;
+    container.innerHTML = tasks.map(t => `
+      <div class="task-card ${t.done ? 'done' : ''}" data-task-id="${t.id}">
+        <div class="task-checkbox ${t.done ? 'done' : ''}" data-toggle="${t.id}">${t.done ? '<i class="fas fa-check" style="font-size:0.7rem;"></i>' : ''}</div>
+        <div class="task-info"><div class="task-title">${t.title}</div><div class="task-meta">${t.zone} · ${t.meta}</div></div>
+        <span class="task-priority ${t.priority}">${t.priority.toUpperCase()}</span>
+      </div>
+    `).join('');
+    container.querySelectorAll('[data-toggle]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(el.dataset.toggle);
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+          task.done = !task.done;
+          renderTasks();
+          showToast(task.done ? `Completed: ${task.title}` : `Reopened: ${task.title}`, 'success');
+        }
+      });
+    });
+    updateTaskStats();
+  }
+
+  function updateTaskStats() {
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    document.getElementById('taskTotal').textContent = total;
+    document.getElementById('taskDone').textContent = done;
+    document.getElementById('taskPending').textContent = total - done;
+  }
+
+  // ---------- API KEYS & WEBHOOKS ----------
+  function renderApiKeys() {
+    const container = document.getElementById('apiKeysList');
+    if (!container) return;
+    container.innerHTML = `
+      <div class="endpoint-row"><span class="method-badge get">LIVE</span><span class="endpoint-path">sk_live_wld_7f8e9d2c...</span><span class="endpoint-desc">Created 30d ago</span></div>
+      <div class="endpoint-row"><span class="method-badge post">TEST</span><span class="endpoint-path">sk_test_wld_4b6a1e3f...</span><span class="endpoint-desc">Created 12d ago</span></div>
+    `;
+  }
+
+  function renderWebhookEvents() {
+    const container = document.getElementById('webhookEvents');
+    if (!container) return;
+    const events = [
+      { type: 'animal.moved', time: '10:42 AM', target: 'DEER-001' },
+      { type: 'health.alert', time: '10:15 AM', target: 'COW-001' },
+      { type: 'sensor.offline', time: '09:38 AM', target: 'WOLF-001' },
+      { type: 'zone.entered', time: '09:12 AM', target: 'TIGER-001' },
+    ];
+    container.innerHTML = events.map(e => `
+      <div class="endpoint-row"><span class="method-badge post">POST</span><span class="endpoint-path">${e.type}</span><span class="endpoint-desc">${e.target} · ${e.time}</span></div>
+    `).join('');
+  }
+
+  let apiUsageChartInst;
+  function initApiUsageChart() {
+    const ctx = document.getElementById('apiUsageChart');
+    if (!ctx) return;
+    apiUsageChartInst = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: Array.from({length: 30}, (_, i) => `Day ${i+1}`),
+        datasets: [{
+          label: 'Requests',
+          data: Array.from({length: 30}, () => Math.floor(Math.random() * 400 + 200)),
+          borderColor: '#06b6d4',
+          backgroundColor: 'rgba(6,182,212,0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          pointRadius: 0,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#5b7a8c', font: { size: 9 }, maxTicksLimit: 6 } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5b7a8c', font: { size: 9 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // ---------- SPECIES ----------
+  function renderSpeciesList() {
+    const counts = {};
+    animals.forEach(a => counts[a.species] = (counts[a.species] || 0) + 1);
+    const allSpecies = ['Cow', 'Deer', 'Bear', 'Wolf', 'Tiger', 'Elephant'];
+    document.getElementById('speciesList').innerHTML = allSpecies.map(sp => `
+      <div class="species-item" data-species="${sp}">
+        <img class="sprite-mini" src="${SPRITES[sp]}" alt="${sp}" onerror="this.src='${SPRITES_FALLBACK[sp]}'">
+        <span>${sp}s</span><span class="count">${counts[sp] || 0}</span>
+      </div>
+    `).join('');
+    document.querySelectorAll('.species-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const sp = item.dataset.species;
+        const animalsNav = document.querySelector('.nav-item[data-page="animals"]');
+        if (animalsNav) animalsNav.click();
+        setTimeout(() => {
+          document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+          const btn = document.querySelector(`.filter-btn[data-filter="${sp}"]`);
+          if (btn) btn.classList.add('active');
+          renderAnimalsTable(sp);
+        }, 50);
+      });
+    });
+  }
+
+  // ---------- ACTIVITY & ZONE ----------
+  function renderRecentActivity() {
+    const events = [
+      { icon: 'fa-paw', color: 'green', text: '<strong>COW-001</strong> is grazing', time: '10:24 AM', sub: 'Zone 2' },
+      { icon: 'fa-shoe-prints', color: 'blue', text: '<strong>DEER-001</strong> moved to Zone 1', time: '09:48 AM', sub: '1.2 km' },
+      { icon: 'fa-moon', color: 'orange', text: '<strong>BEAR-001</strong> resting', time: '09:22 AM', sub: 'Zone 4' },
+      { icon: 'fa-route', color: 'red', text: '<strong>TIGER-001</strong> moved to Zone 1', time: '08:56 AM', sub: '2.3 km' },
+      { icon: 'fa-water', color: 'purple', text: '<strong>WOLF-001</strong> detected near water', time: '08:40 AM', sub: 'Zone 5' },
+    ];
+    const container = document.getElementById('recentActivity');
+    container.innerHTML = events.map(ev => `
+      <div class="activity-item" data-act="${ev.text.replace(/<[^>]*>/g,'')}">
+        <div class="activity-icon ${ev.color}"><i class="fas ${ev.icon}"></i></div>
+        <div class="activity-text">${ev.text}<div class="activity-meta">${ev.time} · ${ev.sub}</div></div>
+      </div>
+    `).join('');
+    container.querySelectorAll('.activity-item').forEach(item => {
+      item.addEventListener('click', () => showToast('Activity: ' + item.dataset.act, 'info'));
+    });
+  }
+
+  function renderZoneGrid() {
+    const counts = {};
+    animals.forEach(a => counts[a.zoneId] = (counts[a.zoneId] || 0) + 1);
+    const container = document.getElementById('zoneGrid');
+    container.innerHTML = ZONES.map(z => {
+      const emojis = animals.filter(a => a.zoneId === z.id).map(a => ({ Cow:'🐄', Deer:'🦌', Bear:'🐻', Wolf:'🐺', Tiger:'🐯', Elephant:'🐘' })[a.species] || '🐾').slice(0, 4).join('');
+      return `
+        <div class="zone-item" style="background: ${z.color}40; border-color: ${z.color}80;" data-zone="${z.id}">
+          <div class="zone-item-name">${z.name}</div>
+          <div class="zone-item-count">${counts[z.id] || 0} animals</div>
+          <div class="zone-mini-icon">${emojis}</div>
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('[data-zone]').forEach(el => {
+      el.addEventListener('click', () => {
+        const zone = ZONES.find(z => z.id === el.dataset.zone);
+        if (zone && map) { map.setView(zone.center, 15); showToast(`Focused on ${zone.name}`, 'info'); }
+      });
+    });
+  }
+
+  // ---------- SIMULATION ----------
+  function updateAnimals(dt) {
+    if (!simulationRunning) return;
+    const sec = dt / 1000;
+    animals.forEach(a => {
+      const zone = ZONES.find(z => z.id === a.zoneId);
+      if (!zone) return;
+      if (Math.random() < 0.004) {
+        const behaviors = {
+          Cow: ['GRAZING', 'WALKING', 'RESTING', 'EATING'],
+          Deer: ['WALKING', 'GRAZING', 'DRINKING', 'LOOKING_AROUND'],
+          Bear: ['WALKING', 'RESTING', 'INVESTIGATING'],
+          Wolf: ['WALKING', 'INVESTIGATING', 'RESTING', 'LOOKING_AROUND'],
+          Tiger: ['WALKING', 'RESTING', 'STALKING', 'INVESTIGATING'],
+          Elephant: ['WALKING', 'FEEDING', 'DRINKING', 'RESTING'],
+        };
+        const opts = behaviors[a.species] || ['WALKING'];
+        a.behavior = opts[Math.floor(Math.random() * opts.length)];
+        if (a.behavior !== 'RESTING' && a.behavior !== 'IDLE') {
+          const b = zone.bounds;
+          a.targetLat = b[0][0] + Math.random() * (b[1][0] - b[0][0]);
+          a.targetLng = b[0][1] + Math.random() * (b[1][1] - b[0][1]);
+        }
+      }
+      if (a.behavior !== 'RESTING' && a.behavior !== 'IDLE') {
+        const dLat = a.targetLat - a.lat;
+        const dLng = a.targetLng - a.lng;
+        const dist = Math.hypot(dLat, dLng);
+        if (dist > 0.0001) {
+          const move = a.speed * 0.000012 * sec * 10;
+          a.lat += (dLat / dist) * move;
+          a.lng += (dLng / dist) * move;
+          const b = zone.bounds;
+          a.lat = Math.max(b[0][0] + 0.0003, Math.min(b[1][0] - 0.0003, a.lat));
+          a.lng = Math.max(b[0][1] + 0.0003, Math.min(b[1][1] - 0.0003, a.lng));
+        } else {
+          const b = zone.bounds;
+          a.targetLat = b[0][0] + Math.random() * (b[1][0] - b[0][0]);
+          a.targetLng = b[0][1] + Math.random() * (b[1][1] - b[0][1]);
+        }
+      }
+      if (!animalTrails[a.id]) animalTrails[a.id] = [];
+      if (animalTrails[a.id].length === 0 || Date.now() - animalTrails[a.id][animalTrails[a.id].length-1].time > 5000) {
+        animalTrails[a.id].push({ lat: a.lat, lng: a.lng, time: Date.now() });
+        if (animalTrails[a.id].length > 200) animalTrails[a.id].shift();
+      }
+      a.temp += (Math.random() - 0.5) * 0.02;
+      a.temp = Math.min(40.5, Math.max(37.2, a.temp));
+      a.hr += (Math.random() - 0.5) * 0.8;
+      a.hr = Math.min(120, Math.max(45, a.hr));
+      a.speed = Math.max(0.2, a.speed + (Math.random() - 0.5) * 0.05);
+      if (a.temp > 39.9) a.health = 'CRITICAL';
+      else if (a.temp > 39.5) a.health = 'WARNING';
+      else a.health = 'HEALTHY';
+      ['animalMarkers', 'animalMarkersFull', 'animalMarkersFullscreen'].forEach(cid => {
+        const el = document.getElementById(cid + '-' + a.id);
+        if (!el) return;
+        const tooltip = el.querySelector('.animal-tooltip');
+        if (!tooltip) return;
+        const rows = tooltip.querySelectorAll('.tooltip-row');
+        if (rows[3]) rows[3].querySelector('.value').textContent = `${a.temp.toFixed(1)}°C`;
+        if (rows[4]) rows[4].querySelector('.value').textContent = `${Math.round(a.hr)} bpm`;
+        if (rows[2]) rows[2].querySelector('.value').textContent = a.behavior.replace('_',' ');
+        const healthSpan = tooltip.querySelector('.tooltip-row:nth-child(4) .value');
+        if (healthSpan) {
+          healthSpan.textContent = a.health;
+          healthSpan.style.color = a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444';
+        }
+        const healthDot = tooltip.querySelector('.health-dot');
+        if (healthDot) healthDot.style.background = a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444';
+        const label = el.querySelector('.animal-label');
+        if (label) label.className = 'animal-label ' + a.health.toLowerCase();
+      });
+    });
+  }
+
+  function updateLivePanel() {
+    const a = animals.find(an => an.id === selectedAnimalId);
+    if (!a) return;
+    document.getElementById('vitalTemp').innerHTML = `${a.temp.toFixed(1)}<small>°C</small>`;
+    document.getElementById('vitalHR').innerHTML = `${Math.round(a.hr)}<small>bpm</small>`;
+    document.getElementById('vitalActivity').textContent = a.behavior.replace('_', ' ').charAt(0) + a.behavior.replace('_', ' ').slice(1).toLowerCase();
+    const badge = document.getElementById('panelHealthBadge');
+    const healthLabel = a.health.charAt(0) + a.health.slice(1).toLowerCase();
+    badge.textContent = healthLabel;
+    badge.className = 'health-badge ' + a.health.toLowerCase();
+    document.getElementById('vitalHealth').textContent = healthLabel;
+    document.getElementById('vitalHealth').style.color = a.health === 'HEALTHY' ? '#4ade80' : a.health === 'WARNING' ? '#f97316' : '#ef4444';
+    if (healthTempChartInst) { healthTempChartInst.data.datasets[0].data.shift(); healthTempChartInst.data.datasets[0].data.push(a.temp); healthTempChartInst.update('none'); }
+    if (healthHRChartInst) { healthHRChartInst.data.datasets[0].data.shift(); healthHRChartInst.data.datasets[0].data.push(a.hr); healthHRChartInst.update('none'); }
+    document.getElementById('reportTotal').textContent = animals.length;
+    document.getElementById('reportHealthy').textContent = animals.filter(a => a.health === 'HEALTHY').length;
+    const avgTemp = animals.reduce((s, a) => s + a.temp, 0) / animals.length;
+    document.getElementById('reportAvgTemp').innerHTML = `${avgTemp.toFixed(1)}<small style="font-size:0.9rem;">°C</small>`;
+    const avgHR = animals.reduce((s, a) => s + a.hr, 0) / animals.length;
+    document.getElementById('reportAvgHR').innerHTML = `${Math.round(avgHR)}<small style="font-size:0.9rem;">bpm</small>`;
+  }
+
+  // ---------- TOAST ----------
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    const icon = type === 'critical' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+    toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+    document.getElementById('toastContainer').appendChild(toast);
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(30px)';
+    requestAnimationFrame(() => {
+      toast.style.transition = 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(0)';
+    });
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(30px)';
+      setTimeout(() => toast.remove(), 400);
+    }, 3400);
+    while (document.getElementById('toastContainer').children.length > 4) {
+      document.getElementById('toastContainer').firstChild.remove();
+    }
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+  document.querySelectorAll('.modal-overlay').forEach(overlay => overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); }));
+
+  // ---------- USER PROFILE ----------
+  document.getElementById('userProfileBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('profileDropdown').classList.toggle('open');
+    document.getElementById('userProfileBtn').classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('profileDropdown');
+    const btn = document.getElementById('userProfileBtn');
+    if (!dd.contains(e.target) && !btn.contains(e.target)) { dd.classList.remove('open'); btn.classList.remove('open'); }
+    const ndd = document.getElementById('notifDropdown');
+    const nbtn = document.getElementById('notifBtn');
+    if (ndd && !ndd.contains(e.target) && !nbtn.contains(e.target)) ndd.classList.remove('open');
+  });
+
+  document.querySelectorAll('.role-option').forEach(opt => {
+    opt.addEventListener('click', () => { if (opt.dataset.role !== currentRole) switchRole(opt.dataset.role); });
+  });
+
+  document.getElementById('ddProfile').addEventListener('click', () => showToast('Profile page', 'info'));
+  document.getElementById('ddPrefs').addEventListener('click', () => document.querySelector('.nav-item[data-page="settings"]')?.click());
+  document.getElementById('ddSignOut').addEventListener('click', () => showToast('Sign out requested', 'warning'));
+
+  document.getElementById('notifBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('notifDropdown').classList.toggle('open');
+  });
+
+  document.getElementById('markAllRead').addEventListener('click', () => {
+    document.getElementById('notifBadge').style.display = 'none';
+    showToast('All notifications marked read', 'success');
+    document.getElementById('notifDropdown').classList.remove('open');
+  });
+
+  // ---------- PANEL TABS ----------
+  document.querySelectorAll('.panel-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.ptab-content').forEach(c => c.style.display = 'none');
+      const target = document.getElementById('ptab-' + tab.dataset.ptab);
+      if (target) target.style.display = 'block';
+      if (tab.dataset.ptab === 'history') renderAnimalHistory(selectedAnimalId);
+    });
+  });
+
+  document.getElementById('panelClose').addEventListener('click', () => {
+    document.querySelector('.animal-panel').style.opacity = '0.4';
+    setTimeout(() => { document.querySelector('.animal-panel').style.opacity = '1'; }, 200);
+  });
+
+  document.getElementById('downloadHistoryBtn').addEventListener('click', () => {
+    const a = animals.find(an => an.id === selectedAnimalId);
+    const trail = animalTrails[selectedAnimalId] || [];
+    let csv = 'AnimalID,Timestamp,Latitude,Longitude,Speed,Zone,Activity\n';
+    trail.forEach(p => {
+      const zone = ZONES.find(z => z.id === a.zoneId);
+      csv += `${a.id},${new Date(p.time).toISOString()},${p.lat.toFixed(6)},${p.lng.toFixed(6)},${a.speed.toFixed(2)},${zone ? zone.name : '—'},${a.behavior}\n`;
+    });
+    downloadFile(csv, `${selectedAnimalId}_history.csv`);
+    showToast(`Downloaded history for ${selectedAnimalId}`, 'success');
+  });
+
+  function downloadFile(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('playRouteBtn').addEventListener('click', () => {
+    const trail = animalTrails[selectedAnimalId] || [];
+    if (trail.length < 2) { showToast('Not enough trail data', 'warning'); return; }
+    if (routePlaybackInterval) {
+      clearInterval(routePlaybackInterval);
+      routePlaybackInterval = null;
+      if (playbackMarker && map) map.removeLayer(playbackMarker);
+      document.getElementById('playRouteBtn').innerHTML = '<i class="fas fa-play"></i> Play Route';
+      return;
+    }
+    if (!map) return;
+    const btn = document.getElementById('playRouteBtn');
+    btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
+    if (playbackMarker) map.removeLayer(playbackMarker);
+    playbackMarker = L.circleMarker([trail[0].lat, trail[0].lng], { radius: 10, fillColor: '#4ade80', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+    const path = trail.map(p => [p.lat, p.lng]);
+    const routeLine = L.polyline(path, { color: '#4ade80', weight: 2, opacity: 0.5, dashArray: '4,4' }).addTo(map);
+    map.fitBounds(routeLine.getBounds(), { padding: [60, 60] });
+    let idx = 0;
+    routePlaybackInterval = setInterval(() => {
+      idx++;
+      if (idx >= trail.length) {
+        clearInterval(routePlaybackInterval);
+        routePlaybackInterval = null;
+        btn.innerHTML = '<i class="fas fa-play"></i> Play Route';
+        if (playbackMarker) { map.removeLayer(playbackMarker); playbackMarker = null; }
+        setTimeout(() => { if (map && map.hasLayer(routeLine)) map.removeLayer(routeLine); }, 2000);
+        return;
+      }
+      if (playbackMarker) playbackMarker.setLatLng([trail[idx].lat, trail[idx].lng]);
+    }, 300);
+  });
+
+  document.getElementById('showTrailBtn').addEventListener('click', () => {
+    if (!map) return;
+    const trail = animalTrails[selectedAnimalId] || [];
+    if (trail.length < 2) { showToast('Not enough data', 'warning'); return; }
+    const path = trail.map(p => [p.lat, p.lng]);
+    const line = L.polyline(path, { color: '#4ade80', weight: 3, opacity: 0.8 }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [60, 60] });
+    setTimeout(() => { if (map && map.hasLayer(line)) map.removeLayer(line); }, 5000);
+    showToast('Trail shown for 5 seconds', 'info');
+  });
+
+  // ---------- DRAW ZONE ----------
+  document.getElementById('addZoneBtn').addEventListener('click', () => openModal('zoneModal'));
+  document.getElementById('zoneColor').addEventListener('input', (e) => document.getElementById('zoneColorHex').value = e.target.value);
+  document.getElementById('drawOnMapBtn').addEventListener('click', () => { closeModal('zoneModal'); startDrawMode(); });
+
+  function startDrawMode() {
+    if (!map) return;
+    drawMode = true;
+    drawnPoints = [];
+    document.getElementById('drawBanner').classList.add('active');
+    document.getElementById('addZoneBtn').classList.add('active');
+    map.getContainer().style.cursor = 'crosshair';
+    map.on('click', addDrawPoint);
+    map.on('dblclick', finishDraw);
+    showToast('Click points on map. Double-click to finish.', 'info');
+  }
+
+  function addDrawPoint(e) {
+    if (!drawMode) return;
+    drawnPoints.push([e.latlng.lat, e.latlng.lng]);
+    if (drawnPolyline) map.removeLayer(drawnPolyline);
+    if (drawnPoints.length > 1) {
+      drawnPolyline = L.polygon(drawnPoints, { color: '#4ade80', weight: 2, fillColor: '#4ade80', fillOpacity: 0.2, dashArray: '5,5' }).addTo(map);
+    }
+  }
+
+  function finishDraw() {
+    if (!drawMode || drawnPoints.length < 3) { showToast('Need at least 3 points', 'warning'); return; }
+    map.off('click', addDrawPoint);
+    map.off('dblclick', finishDraw);
+    map.getContainer().style.cursor = '';
+    const lats = drawnPoints.map(p => p[0]);
+    const lngs = drawnPoints.map(p => p[1]);
+    document.getElementById('zoneNorth').value = Math.max(...lats).toFixed(4);
+    document.getElementById('zoneSouth').value = Math.min(...lats).toFixed(4);
+    document.getElementById('zoneEast').value = Math.max(...lngs).toFixed(4);
+    document.getElementById('zoneWest').value = Math.min(...lngs).toFixed(4);
+    drawMode = false;
+    document.getElementById('drawBanner').classList.remove('active');
+    document.getElementById('addZoneBtn').classList.remove('active');
+    if (drawnPolyline) { map.removeLayer(drawnPolyline); drawnPolyline = null; }
+    openModal('zoneModal');
+    showToast('Zone boundary captured', 'success');
+  }
+
+  document.getElementById('cancelDraw').addEventListener('click', () => {
+    if (map) {
+      map.off('click', addDrawPoint);
+      map.off('dblclick', finishDraw);
+      map.getContainer().style.cursor = '';
+      if (drawnPolyline) { map.removeLayer(drawnPolyline); drawnPolyline = null; }
+    }
+    drawMode = false;
+    document.getElementById('drawBanner').classList.remove('active');
+    document.getElementById('addZoneBtn').classList.remove('active');
+  });
+
+  document.getElementById('submitZone').addEventListener('click', () => {
+    const name = document.getElementById('zoneName').value.trim();
+    if (!name) { showToast('Enter a zone name', 'warning'); return; }
+    const north = parseFloat(document.getElementById('zoneNorth').value);
+    const south = parseFloat(document.getElementById('zoneSouth').value);
+    const east = parseFloat(document.getElementById('zoneEast').value);
+    const west = parseFloat(document.getElementById('zoneWest').value);
+    const color = document.getElementById('zoneColor').value;
+    const newZone = { id: 'zone' + (ZONES.length + 1), name, color, center: [(north + south) / 2, (east + west) / 2], bounds: [[south, west], [north, east]] };
+    ZONES.push(newZone);
+    if (map) addZoneRectangles(map);
+    if (mapFull) addZoneRectangles(mapFull);
+    renderZoneGrid();
+    updateZoneSelects();
+    closeModal('zoneModal');
+    document.getElementById('zoneName').value = '';
+    showToast(`Zone "${name}" added`, 'success');
+  });
+
+  function updateZoneSelects() {
+    ['newZone', 'incZone'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('');
+    });
+  }
+
+  // ---------- PATROL ----------
+  let patrolRouteLayerGroup = null;
+  document.getElementById('editPatrolBtn').addEventListener('click', () => {
+    if (!mapPatrol) return;
+    patrolPoints = [];
+    document.getElementById('patrolDrawBanner').classList.add('active');
+    document.getElementById('editPatrolBtn').classList.add('active');
+    mapPatrol.getContainer().style.cursor = 'crosshair';
+    mapPatrol.on('click', addPatrolPoint);
+    mapPatrol.on('dblclick', finishPatrolDraw);
+    showToast('Click to add waypoints', 'info');
+  });
+
+  function addPatrolPoint(e) {
+    patrolPoints.push([e.latlng.lat, e.latlng.lng]);
+    if (patrolPolyline) mapPatrol.removeLayer(patrolPolyline);
+    if (patrolPoints.length > 1) {
+      patrolPolyline = L.polyline(patrolPoints, { color: '#4ade80', weight: 3, opacity: 0.8, dashArray: '8,8' }).addTo(mapPatrol);
+    }
+    L.circleMarker(e.latlng, { radius: 5, fillColor: '#4ade80', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(mapPatrol);
+  }
+
+  function finishPatrolDraw() {
+    if (patrolPoints.length < 2) { showToast('Need at least 2 points', 'warning'); return; }
+    mapPatrol.off('click', addPatrolPoint);
+    mapPatrol.off('dblclick', finishPatrolDraw);
+    mapPatrol.getContainer().style.cursor = '';
+    document.getElementById('patrolDrawBanner').classList.remove('active');
+    document.getElementById('editPatrolBtn').classList.remove('active');
+    if (patrolRouteLayerGroup) mapPatrol.removeLayer(patrolRouteLayerGroup);
+    drawPatrolRoute(patrolPoints);
+    showToast('Patrol route updated', 'success');
+  }
+
+  document.getElementById('cancelPatrolDraw').addEventListener('click', () => {
+    if (mapPatrol) {
+      mapPatrol.off('click', addPatrolPoint);
+      mapPatrol.off('dblclick', finishPatrolDraw);
+      mapPatrol.getContainer().style.cursor = '';
+      if (patrolPolyline) { mapPatrol.removeLayer(patrolPolyline); patrolPolyline = null; }
+    }
+    document.getElementById('patrolDrawBanner').classList.remove('active');
+    document.getElementById('editPatrolBtn').classList.remove('active');
+  });
+
+  function drawPatrolRoute(points) {
+    if (!mapPatrol || points.length < 2) return;
+    patrolRouteLayerGroup = L.layerGroup().addTo(mapPatrol);
+    L.polyline(points, { color: '#4ade80', weight: 3, opacity: 0.8, dashArray: '8, 8' }).addTo(patrolRouteLayerGroup);
+    L.circleMarker(points[0], { radius: 10, fillColor: '#4ade80', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(patrolRouteLayerGroup).bindPopup('<b>Start</b>');
+    L.circleMarker(points[points.length - 1], { radius: 10, fillColor: '#ef4444', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(patrolRouteLayerGroup).bindPopup('<b>End</b>');
+    mapPatrol.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
+  }
+
+  // ---------- FILTERS ----------
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAnimalsTable(btn.dataset.filter);
+    });
+  });
+
+  // ---------- SEARCH ----------
+  document.getElementById('globalSearch').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    if (!q) return;
+    const found = animals.find(a => a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.species.toLowerCase().includes(q));
+    if (found) selectAnimal(found.id);
+  });
+
+  // ---------- ADD ANIMAL ----------
+  document.getElementById('addAnimalBtn2').addEventListener('click', () => { updateZoneSelects(); openModal('addAnimalModal'); });
+  document.getElementById('submitAddAnimal').addEventListener('click', () => {
+    const species = document.getElementById('newSpecies').value;
+    const name = document.getElementById('newName').value.trim() || 'Unnamed';
+    const breed = document.getElementById('newBreed').value.trim() || 'Unknown';
+    const gender = document.getElementById('newGender').value;
+    const age = parseInt(document.getElementById('newAge').value) || 3;
+    const weight = parseInt(document.getElementById('newWeight').value) || 400;
+    const zoneId = document.getElementById('newZone').value;
+    const prefix = species.toUpperCase().slice(0, 4);
+    let counter = 1;
+    while (animals.find(a => a.id === `${prefix}-${String(counter).padStart(3, '0')}`)) counter++;
+    const newId = `${prefix}-${String(counter).padStart(3, '0')}`;
+    const zone = ZONES.find(z => z.id === zoneId);
+    if (!zone) return;
+    const lat = zone.center[0] + (Math.random() - 0.5) * 0.005;
+    const lng = zone.center[1] + (Math.random() - 0.5) * 0.005;
+    animals.push({ id: newId, species, name, breed, gender, age, weight, zoneId, lat, lng, behavior: 'GRAZING', health: 'HEALTHY', temp: 38.4, hr: 74, speed: 1.2, targetLat: lat, targetLng: lng });
+    animalTrails[newId] = [{ lat, lng, time: Date.now() }];
+    closeModal('addAnimalModal');
+    document.getElementById('addAnimalForm').reset();
+    if (map) renderAnimalMarkers('animalMarkers', map);
+    if (mapFull) renderAnimalMarkers('animalMarkersFull', mapFull);
+    if (mapFullscreen) renderAnimalMarkers('animalMarkersFullscreen', mapFullscreen);
+    renderSpeciesList();
+    renderAnimalsTable();
+    renderZoneGrid();
+    selectAnimal(newId);
+    showToast(`Added ${newId}`, 'success');
+  });
+
+  // ---------- INCIDENT ----------
+  document.getElementById('reportIncidentBtn').addEventListener('click', () => {
+    updateZoneSelects();
+    const sel = document.getElementById('incAnimal');
+    sel.innerHTML = '<option value="">— None —</option>' + animals.map(a => `<option value="${a.id}">${a.id} (${a.species})</option>`).join('');
+    openModal('incidentModal');
+  });
+  document.getElementById('submitIncident').addEventListener('click', () => {
+    const type = document.getElementById('incType').value;
+    const animal = document.getElementById('incAnimal').value || '—';
+    const zoneId = document.getElementById('incZone').value;
+    const desc = document.getElementById('incDesc').value.trim();
+    if (!desc) { showToast('Provide a description', 'warning'); return; }
+    const zone = ZONES.find(z => z.id === zoneId);
+    const counter = String(incidents.length + 13).padStart(3, '0');
+    incidents.unshift({ id: 'INC-' + counter, type, animal, zone: zone ? zone.name : '—', time: 'just now', status: 'Open', description: desc });
+    closeModal('incidentModal');
+    document.getElementById('incidentForm').reset();
+    renderIncidentsTable();
+    showToast(`Incident INC-${counter} reported`, 'success');
+  });
+
+  // ---------- ADD TASK ----------
+  document.getElementById('addTaskBtn').addEventListener('click', () => openModal('taskModal'));
+  document.getElementById('submitTask').addEventListener('click', () => {
+    const title = document.getElementById('taskTitle').value.trim();
+    if (!title) { showToast('Enter a task title', 'warning'); return; }
+    const zone = document.getElementById('taskZone').value;
+    const priority = document.getElementById('taskPriority').value;
+    const due = document.getElementById('taskDue').value.trim() || 'Today';
+    tasks.push({ id: tasks.length + 1, title, zone, priority, meta: `${zone} · Due ${due}`, done: false });
+    closeModal('taskModal');
+    document.getElementById('taskForm').reset();
+    renderTasks();
+    showToast(`Task added`, 'success');
+  });
+
+  // ---------- ADD DEVICE ----------
+  document.getElementById('addDeviceBtn').addEventListener('click', () => {
+    const sel = document.getElementById('devAnimal');
+    sel.innerHTML = animals.map(a => `<option value="${a.id}">${a.id}</option>`).join('');
+    openModal('deviceModal');
+  });
+  document.getElementById('submitDevice').addEventListener('click', () => {
+    const id = document.getElementById('devId').value.trim();
+    if (!id) { showToast('Enter device ID', 'warning'); return; }
+    const type = document.getElementById('devType').value;
+    const animal = document.getElementById('devAnimal').value;
+    devices.push({ id, animal, type, battery: 100, signal: 'Good', status: 'Online', lastSeen: 'just now' });
+    closeModal('deviceModal');
+    document.getElementById('deviceForm').reset();
+    renderDevicesTable();
+    showToast(`Device ${id} added`, 'success');
+  });
+
+  // ---------- ADD USER ----------
+  document.getElementById('addUserBtn').addEventListener('click', () => openModal('userModal'));
+  document.getElementById('submitUser').addEventListener('click', () => {
+    const name = document.getElementById('newUserName').value.trim();
+    const email = document.getElementById('newUserEmail').value.trim();
+    const role = document.getElementById('newUserRole').value;
+    if (!name || !email) { showToast('Fill in all fields', 'warning'); return; }
+    users.push({ id: users.length + 1, name, email, role, status: 'Active', lastLogin: 'never' });
+    closeModal('userModal');
+    document.getElementById('userForm').reset();
+    renderUsersTable();
+    showToast(`User ${name} added`, 'success');
+  });
+
+  // ---------- RESPOND ----------
+  document.getElementById('respondAlertBtn').addEventListener('click', function() {
+    showToast('Alert acknowledged', 'success');
+    this.textContent = 'Dispatched';
+    this.style.background = '#4ade80';
+    setTimeout(() => { this.textContent = 'Respond'; this.style.background = ''; }, 3000);
+  });
+
+  document.getElementById('startPatrolBtn').addEventListener('click', function() {
+    this.innerHTML = '<i class="fas fa-check"></i> Patrol Active';
+    this.style.background = 'linear-gradient(135deg,#4ade80,#22c55e)';
+    showToast('Patrol started', 'success');
+  });
+
+  // ---------- DOWNLOADS ----------
+  document.querySelectorAll('.download-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const type = card.dataset.download;
+      const labels = { movement: 'Movement Data', health: 'Health Records', activity: 'Activity Log', full: 'Complete Dataset', analytics: 'Analytics Report', json: 'JSON Export' };
+      showToast(`Generating ${labels[type]}...`, 'info');
+      setTimeout(() => { downloadCSV(type); showToast(`${labels[type]} downloaded`, 'success'); }, 800);
+    });
+  });
+
+  function downloadCSV(type) {
+    let csv = '', filename = '';
+    if (type === 'movement') {
+      filename = 'wildlife_movement_data.csv';
+      csv = 'AnimalID,Timestamp,Latitude,Longitude,Speed_kmh,Zone\n';
+      animals.forEach(a => (animalTrails[a.id] || []).forEach(p => {
+        const zone = ZONES.find(z => z.id === a.zoneId);
+        csv += `${a.id},${new Date(p.time).toISOString()},${p.lat.toFixed(6)},${p.lng.toFixed(6)},${a.speed.toFixed(2)},${zone ? zone.name : 'Unknown'}\n`;
+      }));
+    } else if (type === 'health') {
+      filename = 'wildlife_health_records.csv';
+      csv = 'AnimalID,Timestamp,Temperature_C,HeartRate_bpm,HealthStatus\n';
+      animals.forEach(a => { for (let i = 0; i < 30; i++) {
+        const t = new Date(Date.now() - i * 3600000);
+        csv += `${a.id},${t.toISOString()},${(a.temp + (Math.random() - 0.5) * 0.4).toFixed(2)},${Math.round(a.hr + (Math.random() - 0.5) * 10)},${a.health}\n`;
+      }});
+    } else if (type === 'activity') {
+      filename = 'wildlife_activity_log.csv';
+      csv = 'AnimalID,Timestamp,Activity,Duration_min\n';
+      const behaviors = ['GRAZING', 'WALKING', 'RESTING', 'DRINKING', 'STALKING', 'INVESTIGATING'];
+      animals.forEach(a => { for (let i = 0; i < 20; i++) {
+        const t = new Date(Date.now() - i * 1800000);
+        csv += `${a.id},${t.toISOString()},${behaviors[Math.floor(Math.random()*behaviors.length)]},${Math.round(Math.random()*45+5)}\n`;
+      }});
+    } else if (type === 'full') {
+      filename = 'wildlife_complete_dataset.csv';
+      csv = 'AnimalID,Species,Name,Breed,Gender,Age,Weight_kg,Zone,Health,Temperature_C,HeartRate_bpm,Activity,Latitude,Longitude\n';
+      animals.forEach(a => {
+        const zone = ZONES.find(z => z.id === a.zoneId);
+        csv += `${a.id},${a.species},${a.name},${a.breed},${a.gender},${a.age},${a.weight},${zone ? zone.name : '—'},${a.health},${a.temp.toFixed(2)},${Math.round(a.hr)},${a.behavior},${a.lat.toFixed(6)},${a.lng.toFixed(6)}\n`;
+      });
+      csv += '\n\nINCIDENTS\nIncidentID,Type,Animal,Zone,Time,Status,Description\n';
+      incidents.forEach(i => csv += `${i.id},${i.type},${i.animal},${i.zone},${i.time},${i.status},"${i.description}"\n`);
+    } else if (type === 'analytics') {
+      filename = 'wildlife_analytics_report.csv';
+      csv = 'Metric,Value\n';
+      csv += `Total Animals,${animals.length}\n`;
+      csv += `Healthy,${animals.filter(a => a.health === 'HEALTHY').length}\n`;
+      csv += `Warning,${animals.filter(a => a.health === 'WARNING').length}\n`;
+      csv += `Critical,${animals.filter(a => a.health === 'CRITICAL').length}\n`;
+      csv += `Avg Temperature,${(animals.reduce((s, a) => s + a.temp, 0) / animals.length).toFixed(2)}\n`;
+      csv += `Avg Heart Rate,${Math.round(animals.reduce((s, a) => s + a.hr, 0) / animals.length)}\n`;
+    } else if (type === 'json') {
+      const data = { exportedAt: new Date().toISOString(), totalAnimals: animals.length, animals: animals.map(a => ({ id: a.id, species: a.species, name: a.name, breed: a.breed, gender: a.gender, age: a.age, weight: a.weight, zone: a.zoneId, health: a.health, temperature: a.temp, heartRate: a.hr, behavior: a.behavior, location: { lat: a.lat, lng: a.lng } })), incidents, zones: ZONES };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = 'wildlife_data.json'; link.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    downloadFile(csv, filename);
+  }
+
+  // ---------- API KEY ----------
+  document.getElementById('copyKeyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('apiKey').textContent).then(() => showToast('API key copied', 'success'));
+  });
+  document.getElementById('regenerateKeyBtn').addEventListener('click', () => {
+    const chars = 'abcdef0123456789';
+    let key = 'sk_live_wld_';
+    for (let i = 0; i < 32; i++) key += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('apiKey').textContent = key;
+    showToast('New API key generated', 'success');
+  });
+
+  // ---------- API DATA EXPLORER ----------
+  document.getElementById('runQueryBtn').addEventListener('click', () => {
+    const endpoint = document.getElementById('explorerEndpoint').value;
+    const output = document.getElementById('explorerOutput');
+    const status = document.getElementById('explorerStatus');
+    let data;
+    if (endpoint === '/api/animals') {
+      data = animals.map(a => ({ id: a.id, species: a.species, name: a.name, zone: a.zoneId, health: a.health, temp: parseFloat(a.temp.toFixed(1)), hr: Math.round(a.hr) }));
+    } else if (endpoint === '/api/analytics') {
+      data = { totalAnimals: animals.length, healthy: animals.filter(a => a.health === 'HEALTHY').length, avgTemp: (animals.reduce((s, a) => s + a.temp, 0) / animals.length).toFixed(2), avgHR: Math.round(animals.reduce((s, a) => s + a.hr, 0) / animals.length) };
+    } else if (endpoint === '/api/alerts') {
+      data = incidents.filter(i => i.status === 'Open');
+    } else if (endpoint.startsWith('/api/animals/')) {
+      const id = endpoint.split('/').pop();
+      const a = animals.find(x => x.id === id);
+      data = a ? { id: a.id, species: a.species, name: a.name, breed: a.breed, zone: a.zoneId, health: a.health, temp: a.temp, hr: a.hr, behavior: a.behavior, location: { lat: a.lat, lng: a.lng } } : { error: 'Not found' };
+    }
+    output.textContent = JSON.stringify(data, null, 2);
+    status.textContent = `200 OK · ${Math.floor(Math.random() * 100 + 80)}ms`;
+    status.style.color = '#4ade80';
+    showToast(`Query executed: ${endpoint}`, 'success');
+  });
+
+  document.querySelectorAll('.endpoint-row[data-endpoint]').forEach(row => {
+    row.addEventListener('click', () => {
+      const ep = row.dataset.endpoint;
+      document.getElementById('explorerEndpoint').value = '/api/animals';
+      showToast(`Loaded ${ep}`, 'info');
+      document.getElementById('runQueryBtn').click();
+    });
+  });
+
+  // ---------- SETTINGS ----------
+  document.getElementById('toggleSim').addEventListener('click', function() {
+    simulationRunning = !simulationRunning;
+    this.textContent = simulationRunning ? 'ON' : 'OFF';
+    this.classList.toggle('on', simulationRunning);
+    showToast(`Simulation ${simulationRunning ? 'resumed' : 'paused'}`, simulationRunning ? 'success' : 'warning');
+  });
+  document.querySelectorAll('.settings-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.classList.toggle('on');
+      this.textContent = this.classList.contains('on') ? 'ON' : 'OFF';
+    });
+  });
+  document.getElementById('sensorInterval').addEventListener('change', function() { showToast(`Interval set to ${this.value}`, 'success'); });
+  document.getElementById('resetSimBtn').addEventListener('click', () => {
+    if (!confirm('Reset simulation?')) return;
+    animals = JSON.parse(JSON.stringify(INITIAL_ANIMALS));
+    animalTrails = {};
+    animals.forEach(a => {
+      animalTrails[a.id] = [];
+      for (let i = 0; i < 30; i++) animalTrails[a.id].push({ lat: a.lat + (Math.random()-0.5)*0.004, lng: a.lng + (Math.random()-0.5)*0.004, time: Date.now() - (30-i)*60000 });
+    });
+    if (map) renderAnimalMarkers('animalMarkers', map);
+    if (mapFull) renderAnimalMarkers('animalMarkersFull', mapFull);
+    renderSpeciesList(); renderAnimalsTable(); renderZoneGrid();
+    selectAnimal('COW-001');
+    showToast('Simulation reset', 'success');
+  });
+  document.getElementById('exportAllBtn').addEventListener('click', () => { downloadCSV('full'); showToast('Exported all data', 'success'); });
+  document.getElementById('exportReportBtn').addEventListener('click', () => { showToast('Generating...', 'info'); setTimeout(() => { downloadCSV('analytics'); showToast('Downloaded', 'success'); }, 800); });
+  document.getElementById('viewAllActivity').addEventListener('click', () => document.querySelector('.nav-item[data-page="reports"]')?.click());
+  document.getElementById('refreshDevicesBtn').addEventListener('click', () => { devices.forEach(d => { d.battery = Math.max(5, d.battery - Math.floor(Math.random()*3)); }); renderDevicesTable(); showToast('Devices refreshed', 'success'); });
+  document.getElementById('genKeyBtn').addEventListener('click', () => showToast('New API key generated', 'success'));
+
+  // ---------- CHARTS ----------
+  let activityChartInst, speciesChartInst, healthDistChartInst, zonePopChartInst, healthTempChartInst, healthHRChartInst;
+
+  function initCharts() {
+    const actCtx = document.getElementById('activityChart').getContext('2d');
+    activityChartInst = new Chart(actCtx, {
+      type: 'line',
+      data: {
+        labels: ['12 AM', '4 AM', '8 AM', '12 PM', '4 PM', '8 PM', '12 AM'],
+        datasets: [
+          { label: 'Cows', data: [30, 25, 55, 70, 65, 45, 30], borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#4ade80', fill: true },
+          { label: 'Deer', data: [20, 35, 45, 40, 50, 55, 25], borderColor: '#3b82f6', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#3b82f6' },
+          { label: 'Bears', data: [15, 20, 30, 35, 40, 30, 20], borderColor: '#f97316', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#f97316' },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#94a3b8', font: { size: 10, family: 'Inter' }, boxWidth: 10, padding: 8, usePointStyle: true, pointStyle: 'circle' } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5b7a8c', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5b7a8c', font: { size: 9 } }, beginAtZero: true, max: 100 } } }
+    });
+    const htCtx = document.getElementById('healthTempChart').getContext('2d');
+    healthTempChartInst = new Chart(htCtx, { type: 'line', data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(38.5), borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', borderWidth: 1.5, tension: 0.4, pointRadius: 0, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 36, max: 42 } } } });
+    const hhCtx = document.getElementById('healthHRChart').getContext('2d');
+    healthHRChartInst = new Chart(hhCtx, { type: 'line', data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(75), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1.5, tension: 0.4, pointRadius: 0, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 40, max: 130 } } } });
+    const spCtx = document.getElementById('speciesChart').getContext('2d');
+    const counts = {};
+    animals.forEach(a => counts[a.species] = (counts[a.species] || 0) + 1);
+    speciesChartInst = new Chart(spCtx, { type: 'doughnut', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#4ade80', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#eab308'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, usePointStyle: true, pointStyle: 'circle' } } }, cutout: '60%' } });
+    const hdCtx = document.getElementById('healthDistChart').getContext('2d');
+    healthDistChartInst = new Chart(hdCtx, { type: 'doughnut', data: { labels: ['Healthy', 'Warning', 'Critical'], datasets: [{ data: [6, 0, 0], backgroundColor: ['#4ade80', '#f97316', '#ef4444'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, usePointStyle: true, pointStyle: 'circle' } } }, cutout: '60%' } });
+    const zpCtx = document.getElementById('zonePopChart').getContext('2d');
+    const zoneCounts = ZONES.map(z => animals.filter(a => a.zoneId === z.id).length);
+    zonePopChartInst = new Chart(zpCtx, { type: 'bar', data: { labels: ZONES.map(z => z.name.split(' ')[0]), datasets: [{ data: zoneCounts, backgroundColor: ZONES.map(z => z.color), borderRadius: 6, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#5b7a8c', font: { size: 10 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5b7a8c', font: { size: 10 } }, beginAtZero: true } } } });
+  }
+
+  function updateCharts() {
+    if (activityChartInst) {
+      const t = Date.now() / 5000;
+      activityChartInst.data.datasets.forEach((ds, i) => {
+        ds.data = ds.data.map((v, j) => Math.max(5, Math.min(100, [50,40,30][i] + Math.sin(t + j + i) * 15 + Math.random() * 8)));
+      });
+      activityChartInst.update('none');
+    }
+    if (speciesChartInst) {
+      const counts = {};
+      animals.forEach(a => counts[a.species] = (counts[a.species] || 0) + 1);
+      speciesChartInst.data.labels = Object.keys(counts);
+      speciesChartInst.data.datasets[0].data = Object.values(counts);
+      speciesChartInst.update('none');
+    }
+    if (healthDistChartInst) {
+      healthDistChartInst.data.datasets[0].data = [animals.filter(a => a.health === 'HEALTHY').length, animals.filter(a => a.health === 'WARNING').length, animals.filter(a => a.health === 'CRITICAL').length];
+      healthDistChartInst.update('none');
+    }
+    if (zonePopChartInst) {
+      zonePopChartInst.data.datasets[0].data = ZONES.map(z => animals.filter(a => a.zoneId === z.id).length);
+      zonePopChartInst.data.labels = ZONES.map(z => z.name.split(' ')[0]);
+      zonePopChartInst.update('none');
+    }
+  }
+
+  // ---------- MAPS INIT ----------
+  function initDashboardMap() {
+    map = initLeafletMap('map', { zoom: 14 });
+    if (!map) return;
+    addZoneRectangles(map);
+    map.on('move zoom moveend zoomend', () => updateMarkerPositions(map, 'animalMarkers'));
+    renderAnimalMarkers('animalMarkers', map);
+    setTimeout(() => fitAllAnimals(map), 500);
+    document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
+    document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+    document.getElementById('resetView').addEventListener('click', () => { fitAllAnimals(map); showToast('Fitted to all animals', 'info'); });
+    document.getElementById('fullscreenBtn').addEventListener('click', () => openFullscreenMap());
+    setTimeout(() => { map.invalidateSize(); updateMarkerPositions(map, 'animalMarkers'); }, 200);
+  }
+
+  function initFullMap() {
+    mapFull = initLeafletMap('mapFull', { zoom: 14 });
+    if (!mapFull) return;
+    addZoneRectangles(mapFull);
+    mapFull.on('move zoom moveend zoomend', () => updateMarkerPositions(mapFull, 'animalMarkersFull'));
+    renderAnimalMarkers('animalMarkersFull', mapFull);
+    setTimeout(() => { mapFull.invalidateSize(); fitAllAnimals(mapFull); updateMarkerPositions(mapFull, 'animalMarkersFull'); }, 200);
+    document.getElementById('zoomInFull').addEventListener('click', () => mapFull.zoomIn());
+    document.getElementById('zoomOutFull').addEventListener('click', () => mapFull.zoomOut());
+    document.getElementById('resetViewFull').addEventListener('click', () => { fitAllAnimals(mapFull); showToast('Fitted', 'info'); });
+    document.getElementById('fitAllBtn').addEventListener('click', () => { fitAllAnimals(mapFull); showToast('Fitted', 'info'); });
+    document.getElementById('fullscreenBtn2').addEventListener('click', () => openFullscreenMap());
+  }
+
+  function initPatrolMap() {
+    mapPatrol = initLeafletMap('mapPatrol', { zoom: 13 });
+    if (!mapPatrol) return;
+    const routePoints = [[33.7060, 73.0400], [33.7000, 73.0500], [33.7000, 73.0700], [33.6940, 73.0750], [33.6800, 73.0650], [33.6750, 73.0650], [33.6700, 73.0750], [33.6650, 73.0800]];
+    patrolPoints = routePoints;
+    drawPatrolRoute(routePoints);
+    document.getElementById('zoomInPatrol').addEventListener('click', () => mapPatrol.zoomIn());
+    document.getElementById('zoomOutPatrol').addEventListener('click', () => mapPatrol.zoomOut());
+    document.getElementById('resetPatrolView').addEventListener('click', () => mapPatrol.fitBounds(L.latLngBounds(patrolPoints), { padding: [40, 40] }));
+    setTimeout(() => mapPatrol.invalidateSize(), 200);
+  }
+
+  function openFullscreenMap() {
+    document.getElementById('fullscreenModal').classList.add('open');
+    setTimeout(() => {
+      if (!mapFullscreen) {
+        mapFullscreen = initLeafletMap('mapFullscreen', { zoom: 14 });
+        if (mapFullscreen) {
+          addZoneRectangles(mapFullscreen);
+          mapFullscreen.on('move zoom moveend zoomend', () => updateMarkerPositions(mapFullscreen, 'animalMarkersFullscreen'));
+          renderAnimalMarkers('animalMarkersFullscreen', mapFullscreen);
+          setTimeout(() => { mapFullscreen.invalidateSize(); fitAllAnimals(mapFullscreen); }, 200);
+        }
+      } else {
+        setTimeout(() => { mapFullscreen.invalidateSize(); fitAllAnimals(mapFullscreen); }, 100);
+      }
+    }, 100);
+    document.getElementById('zoomInFS').onclick = () => mapFullscreen && mapFullscreen.zoomIn();
+    document.getElementById('zoomOutFS').onclick = () => mapFullscreen && mapFullscreen.zoomOut();
+    document.getElementById('fitAllFullscreen').onclick = () => mapFullscreen && fitAllAnimals(mapFullscreen);
+    document.getElementById('closeFullscreen').onclick = () => document.getElementById('fullscreenModal').classList.remove('open');
+  }
+
+  // ---------- LOOP ----------
+  function loop(now) {
+    const dt = Math.min(100, now - lastTick);
+    lastTick = now;
+    updateAnimals(dt);
+    updateAllMarkers();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- INIT ----------
+  window.addEventListener('load', () => {
+    renderSidebarForRole();
+    document.querySelector('.nav-item[data-page="dashboard"]')?.classList.add('active');
+    renderSpeciesList();
+    renderAnimalsTable('all');
+    renderRecentActivity();
+    renderZoneGrid();
+    renderIncidentsTable();
+    renderTasks();
+    renderDevicesTable();
+    renderUsersTable();
+    renderApiKeys();
+    renderWebhookEvents();
+    initCharts();
+    selectAnimal('COW-001');
+    updateZoneSelects();
+    setTimeout(initDashboardMap, 150);
+    setInterval(() => { updateLivePanel(); if (document.getElementById('page-dashboard').classList.contains('active')) renderZoneGrid(); }, 1500);
+    setInterval(updateCharts, 3000);
+    setTimeout(() => showToast('Wildlife monitoring system online', 'success'), 800);
+    lastTick = performance.now();
+    requestAnimationFrame(loop);
+  });
+
+  window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+    if (mapFull) mapFull.invalidateSize();
+    if (mapPatrol) mapPatrol.invalidateSize();
+    if (mapFullscreen) mapFullscreen.invalidateSize();
+    if (historyMiniMap) historyMiniMap.invalidateSize();
+    setTimeout(updateAllMarkers, 200);
+  });
+
+</script>
+</body>
+</html>
